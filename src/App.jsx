@@ -1195,12 +1195,23 @@ function App() {
     setTab('home');
   };
 
-  // Admin unlock — escribe el PIN en el footer
+  // Admin unlock — escribe el PIN con el teclado (en cualquier parte de la página)
   const handleAdminKey = char => {
     const next = (adminBuf + char).slice(-ADMIN_PIN.length);
     setAdminBuf(next);
     if (next === ADMIN_PIN) { setAdmin(true); setTab('admin'); }
   };
+
+  useEffect(() => {
+    const onKey = e => {
+      // Ignora si el foco está en un input/textarea
+      if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) return;
+      if (e.key.length === 1) handleAdminKey(e.key);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adminBuf]);
 
   const navTabs = [
     { id:'home',    l:t.nav_home },
