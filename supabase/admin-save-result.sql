@@ -2,8 +2,10 @@
 -- ADMIN: guarda el resultado de un partido (bypasea RLS via SECURITY DEFINER)
 -- Ejecutar en: Supabase → SQL Editor → New Query
 -- ─────────────────────────────────────────────────────────────────────────────
+DROP FUNCTION IF EXISTS admin_save_result(uuid, int, int);
+
 CREATE OR REPLACE FUNCTION admin_save_result(
-  p_match_id uuid,
+  p_match_id bigint,
   p_home     int,
   p_away     int
 )
@@ -17,4 +19,4 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION admin_save_result(uuid, int, int) TO authenticated;
+GRANT EXECUTE ON FUNCTION admin_save_result(bigint, int, int) TO authenticated;
