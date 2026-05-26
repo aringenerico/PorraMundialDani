@@ -1085,10 +1085,12 @@ function AdminPage({ t, matches, onMatchUpdated }) {
       p_home:     parseInt(h),
       p_away:     parseInt(a),
     });
-    if (!error) {
-      setSaved(s => ({ ...s, [match.id]: true }));
+    if (error) {
+      setSaved(s => ({ ...s, [match.id]: 'err:' + error.message }));
+    } else {
+      setSaved(s => ({ ...s, [match.id]: 'ok' }));
       onMatchUpdated();
-      setTimeout(() => setSaved(s => ({ ...s, [match.id]: false })), 2500);
+      setTimeout(() => setSaved(s => ({ ...s, [match.id]: null })), 2500);
     }
   };
 
@@ -1140,9 +1142,16 @@ function AdminPage({ t, matches, onMatchUpdated }) {
                 value={results[m.id]?.a ?? (m.away_goals ?? '')}
                 onChange={e => setGoals(m.id,'a',e.target.value)} placeholder="0" />
             </div>
-            <button className="btn-acc btn-sm" onClick={() => saveResult(m)}>
-              {saved[m.id] ? t.admin_saved : t.admin_save}
-            </button>
+            <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
+              <button className="btn-acc btn-sm" onClick={() => saveResult(m)}>
+                {saved[m.id] === 'ok' ? t.admin_saved : t.admin_save}
+              </button>
+              {saved[m.id]?.startsWith?.('err:') && (
+                <span style={{fontSize:11,color:'var(--err)',maxWidth:180,wordBreak:'break-all'}}>
+                  ❌ {saved[m.id].replace('err:','')}
+                </span>
+              )}
+            </div>
           </div>
         ))}
       </div>
