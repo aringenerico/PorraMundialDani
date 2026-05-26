@@ -17,15 +17,21 @@ const PHASE_LABELS = {
 
 // ─── FLAGS ────────────────────────────────────────────────────────────────────
 const FLAGS = {
-  "Argentina":"🇦🇷","Australia":"🇦🇺","Belgium":"🇧🇪","Brazil":"🇧🇷",
-  "Canada":"🇨🇦","Colombia":"🇨🇴","Croatia":"🇭🇷","Ecuador":"🇪🇨",
-  "Egypt":"🇪🇬","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","France":"🇫🇷","Germany":"🇩🇪",
-  "Ghana":"🇬🇭","Iran":"🇮🇷","Japan":"🇯🇵","Mexico":"🇲🇽",
-  "Morocco":"🇲🇦","Netherlands":"🇳🇱","Norway":"🇳🇴","Panama":"🇵🇦",
-  "Paraguay":"🇵🇾","Portugal":"🇵🇹","Qatar":"🇶🇦","Saudi Arabia":"🇸🇦",
-  "Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Senegal":"🇸🇳","South Korea":"🇰🇷","Spain":"🇪🇸",
-  "Sweden":"🇸🇪","Switzerland":"🇨🇭","Tunisia":"🇹🇳","Turkey":"🇹🇷",
-  "USA":"🇺🇸","United States":"🇺🇸","Uruguay":"🇺🇾",
+  "Algeria":"🇩🇿","Argentina":"🇦🇷","Australia":"🇦🇺","Austria":"🇦🇹",
+  "Belgium":"🇧🇪","Bosnia and Herzegovina":"🇧🇦","Brazil":"🇧🇷",
+  "Cabo Verde":"🇨🇻","Canada":"🇨🇦","Colombia":"🇨🇴","Croatia":"🇭🇷",
+  "Curaçao":"🇨🇼","Czech Republic":"🇨🇿",
+  "DR Congo":"🇨🇩","Ecuador":"🇪🇨","Egypt":"🇪🇬","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  "France":"🇫🇷","Germany":"🇩🇪","Ghana":"🇬🇭","Haiti":"🇭🇹",
+  "Iran":"🇮🇷","Iraq":"🇮🇶","Ivory Coast":"🇨🇮",
+  "Japan":"🇯🇵","Jordan":"🇯🇴",
+  "Mexico":"🇲🇽","Morocco":"🇲🇦",
+  "Netherlands":"🇳🇱","New Zealand":"🇳🇿","Norway":"🇳🇴",
+  "Panama":"🇵🇦","Paraguay":"🇵🇾","Portugal":"🇵🇹",
+  "Qatar":"🇶🇦","Saudi Arabia":"🇸🇦","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Senegal":"🇸🇳",
+  "South Africa":"🇿🇦","South Korea":"🇰🇷","Spain":"🇪🇸","Sweden":"🇸🇪",
+  "Switzerland":"🇨🇭","Tunisia":"🇹🇳","Turkey":"🇹🇷",
+  "Uruguay":"🇺🇾","USA":"🇺🇸","Uzbekistan":"🇺🇿",
 };
 const flag = t => FLAGS[t] || '🏳️';
 
