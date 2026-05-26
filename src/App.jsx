@@ -47,11 +47,41 @@ const calcScore = (predH, predA, realH, realA) => {
   return gh + ga + res + exact;
 };
 
+// ─── GROUP STANDINGS ─────────────────────────────────────────────────────────
+function computeAllStandings(matches) {
+  // Collect all teams per group from the fixture (not just finished matches)
+  const groups = {};
+  matches.filter(m => m.phase === 'group' && m.home_team && m.away_team).forEach(m => {
+    const g = m.group_name;
+    if (!groups[g]) groups[g] = {};
+    const mk = t => groups[g][t] || (groups[g][t] = {pj:0,w:0,d:0,l:0,gf:0,ga:0});
+    mk(m.home_team); mk(m.away_team);
+    if (m.status === 'finished' && m.home_goals !== null && m.away_goals !== null) {
+      const h = groups[g][m.home_team], a = groups[g][m.away_team];
+      h.pj++; h.gf += m.home_goals; h.ga += m.away_goals;
+      a.pj++; a.gf += m.away_goals; a.ga += m.home_goals;
+      if      (m.home_goals > m.away_goals) { h.w++; a.l++; }
+      else if (m.home_goals < m.away_goals) { a.w++; h.l++; }
+      else                                  { h.d++; a.d++; }
+    }
+  });
+  const result = {};
+  Object.entries(groups).sort(([a],[b]) => a.localeCompare(b)).forEach(([g, teams]) => {
+    result[g] = Object.entries(teams)
+      .map(([team, s]) => ({
+        team, pj:s.pj, w:s.w, d:s.d, l:s.l,
+        gf:s.gf, ga:s.ga, gd:s.gf-s.ga, pts:s.w*3+s.d
+      }))
+      .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
+  });
+  return result;
+}
+
 // ─── TRANSLATIONS ─────────────────────────────────────────────────────────────
 const LANGS = {
   es: {
     nav_home:'Inicio', nav_predict:'Mis Pronósticos', nav_results:'Resultados',
-    nav_ranking:'Clasificación', nav_bracket:'Cuadro',
+    nav_ranking:'Clasificación', nav_groups:'Grupos', nav_bracket:'Cuadro',
     logout_btn:'Cerrar sesión',
     predict_title:'Mis Pronósticos', results_title:'Resultados',
     ranking_title:'Clasificación Global', bracket_title:'Cuadro Eliminatorio',
@@ -85,10 +115,14 @@ const LANGS = {
     verify_hint:'Haz clic en el enlace del email para activar tu cuenta y luego vuelve aquí.',
     verify_resend:'Reenviar email',
     verify_resent:'✅ Email reenviado',
+    groups_title:'Clasificaciones de Grupo',
+    update_bracket:'🔄 Actualizar Cuadro',
+    updating_bracket:'Actualizando…',
+    bracket_updated:'✅ Cuadro actualizado',
   },
   en: {
     nav_home:'Home', nav_predict:'My Predictions', nav_results:'Results',
-    nav_ranking:'Leaderboard', nav_bracket:'Bracket',
+    nav_ranking:'Leaderboard', nav_groups:'Groups', nav_bracket:'Bracket',
     logout_btn:'Sign out',
     predict_title:'My Predictions', results_title:'Results',
     ranking_title:'Global Leaderboard', bracket_title:'Knockout Bracket',
@@ -121,10 +155,14 @@ const LANGS = {
     verify_hint:'Click the link in the email to activate your account, then come back here.',
     verify_resend:'Resend email',
     verify_resent:'✅ Email resent',
+    groups_title:'Group Standings',
+    update_bracket:'🔄 Update Bracket',
+    updating_bracket:'Updating…',
+    bracket_updated:'✅ Bracket updated',
   },
   pt: {
     nav_home:'Início', nav_predict:'Meus Palpites', nav_results:'Resultados',
-    nav_ranking:'Classificação', nav_bracket:'Chaveamento',
+    nav_ranking:'Classificação', nav_groups:'Grupos', nav_bracket:'Chaveamento',
     logout_btn:'Sair',
     predict_title:'Meus Palpites', results_title:'Resultados',
     ranking_title:'Classificação Geral', bracket_title:'Mata-Mata',
@@ -157,6 +195,10 @@ const LANGS = {
     verify_hint:'Clique no link do email para ativar sua conta e volte aqui.',
     verify_resend:'Reenviar email',
     verify_resent:'✅ Email reenviado',
+    groups_title:'Classificações dos Grupos',
+    update_bracket:'🔄 Atualizar Chaveamento',
+    updating_bracket:'Atualizando…',
+    bracket_updated:'✅ Chaveamento atualizado',
   },
 };
 
@@ -338,6 +380,29 @@ const CSS = `
                 font-weight:600; padding:5px 12px; white-space:nowrap; transition:all var(--tr); }
   .phase-chip:hover  { color:var(--txt); border-color:rgba(255,255,255,.2); }
   .phase-chip.active { background:rgba(245,183,49,.15); color:var(--acc); border-color:var(--acc); }
+
+  /* ── GROUPS ── */
+  .groups-grid { display:grid; gap:12px;
+                 grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); }
+  .group-card  { background:var(--card); border-radius:var(--rad); padding:12px;
+                 border:1px solid rgba(255,255,255,.07); }
+  .group-title { font-size:13px; font-weight:700; color:var(--acc);
+                 margin-bottom:8px; text-transform:uppercase; letter-spacing:.5px; }
+  .grp-tbl     { width:100%; border-collapse:collapse; font-size:12px; }
+  .grp-tbl th  { color:var(--mut); font-weight:600; text-align:center;
+                 padding:2px 3px; }
+  .grp-tbl th:first-child { text-align:left; padding-left:2px; }
+  .grp-tbl td  { padding:5px 3px; text-align:center;
+                 border-top:1px solid rgba(255,255,255,.05); }
+  .grp-tbl td:first-child { text-align:left; font-weight:600; padding-left:2px; }
+  .grp-tbl .classified   { background:rgba(64,212,144,.07); }
+  .grp-tbl .third-place  { background:rgba(96,170,255,.06); }
+  .grp-tbl .pos-badge    { display:inline-block; width:16px; height:16px; border-radius:50%;
+                            font-size:10px; font-weight:700; line-height:16px; text-align:center;
+                            margin-right:4px; }
+  .grp-tbl .p1 { background:var(--acc); color:#0a1628; }
+  .grp-tbl .p2 { background:rgba(64,212,144,.6); color:#0a1628; }
+  .grp-tbl .p3 { background:rgba(96,170,255,.5); color:#0a1628; }
 
   /* ── ADMIN ── */
   .admin-match { display:grid; grid-template-columns:1fr auto 1fr; align-items:center;
@@ -877,6 +942,85 @@ function LeaderboardPage({ t, user }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PAGE: GROUPS
+// ─────────────────────────────────────────────────────────────────────────────
+function GroupsPage({ t, matches }) {
+  const standings = computeAllStandings(matches);
+  const groups    = Object.keys(standings);
+
+  if (!groups.length) return (
+    <div className="page">
+      <div className="page-title">📋 {t.groups_title}</div>
+      <div className="card"><p className="txt-mut">No hay datos de grupo aún.</p></div>
+    </div>
+  );
+
+  return (
+    <div className="page">
+      <div className="page-title">📋 {t.groups_title}</div>
+      <div className="groups-grid">
+        {groups.map(grp => {
+          const rows = standings[grp];
+          return (
+            <div key={grp} className="group-card">
+              <div className="group-title">Grupo {grp}</div>
+              <table className="grp-tbl">
+                <thead>
+                  <tr>
+                    <th style={{width:'40%'}}></th>
+                    <th>PJ</th><th>G</th><th>E</th><th>P</th>
+                    <th>GF</th><th>GC</th><th>DG</th>
+                    <th style={{color:'var(--acc)'}}>Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => {
+                    const rowClass = i === 0 ? 'classified' : i === 1 ? 'classified' : i === 2 ? 'third-place' : '';
+                    const posClass = i === 0 ? 'p1' : i === 1 ? 'p2' : i === 2 ? 'p3' : '';
+                    return (
+                      <tr key={r.team} className={rowClass}>
+                        <td>
+                          {posClass && <span className={`pos-badge ${posClass}`}>{i+1}</span>}
+                          {!posClass && <span style={{marginRight:20}}></span>}
+                          {flag(r.team)} {r.team}
+                        </td>
+                        <td>{r.pj}</td>
+                        <td>{r.w}</td>
+                        <td>{r.d}</td>
+                        <td>{r.l}</td>
+                        <td>{r.gf}</td>
+                        <td>{r.ga}</td>
+                        <td style={{color: r.gd > 0 ? 'var(--ok)' : r.gd < 0 ? 'var(--err)' : 'var(--mut)'}}>
+                          {r.gd > 0 ? `+${r.gd}` : r.gd}
+                        </td>
+                        <td style={{fontWeight:700,color:'var(--acc)'}}>{r.pts}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{marginTop:12,padding:'10px 14px',background:'rgba(255,255,255,.04)',
+                   borderRadius:10,fontSize:12,color:'var(--mut)'}}>
+        <span style={{marginRight:16}}>
+          <span style={{display:'inline-block',width:10,height:10,borderRadius:50,
+                        background:'rgba(64,212,144,.6)',marginRight:4}}></span>
+          Clasificado (1º / 2º)
+        </span>
+        <span>
+          <span style={{display:'inline-block',width:10,height:10,borderRadius:50,
+                        background:'rgba(96,170,255,.5)',marginRight:4}}></span>
+          Mejor 3º (posible)
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PAGE: BRACKET
 // ─────────────────────────────────────────────────────────────────────────────
 function BracketPage({ t, matches }) {
@@ -911,9 +1055,19 @@ function BracketPage({ t, matches }) {
 // PAGE: ADMIN
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminPage({ t, matches, onMatchUpdated }) {
-  const [results, setResults] = useState({});
-  const [saved, setSaved]     = useState({});
-  const [phase, setPhase]     = useState('all');
+  const [results, setResults]       = useState({});
+  const [saved, setSaved]           = useState({});
+  const [phase, setPhase]           = useState('all');
+  const [filling, setFilling]       = useState(false);
+  const [fillStatus, setFillStatus] = useState('');  // '' | 'ok' | 'err'
+
+  const fillBracket = async () => {
+    setFilling(true); setFillStatus('');
+    const { error } = await supabase.rpc('auto_fill_bracket');
+    setFilling(false);
+    if (error) { setFillStatus('err'); }
+    else       { setFillStatus('ok'); onMatchUpdated(); setTimeout(() => setFillStatus(''), 4000); }
+  };
 
   const setGoals = (matchId, side, val) => {
     const n = val.replace(/\D/g,'').slice(0,2);
@@ -937,6 +1091,23 @@ function AdminPage({ t, matches, onMatchUpdated }) {
   return (
     <div className="page">
       <div className="page-title">⚙️ {t.admin_panel}</div>
+
+      {/* ── Bracket auto-fill ── */}
+      <div className="card" style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap',
+                                     marginBottom:12,padding:'12px 16px'}}>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:600,fontSize:14}}>Cuadro eliminatorio</div>
+          <div className="txt-mut" style={{fontSize:12,marginTop:2}}>
+            Calcula clasificados y rellena los cruces automáticamente
+          </div>
+        </div>
+        <button className="btn-acc btn-sm" onClick={fillBracket} disabled={filling}>
+          {filling ? t.updating_bracket : t.update_bracket}
+        </button>
+        {fillStatus === 'ok'  && <span className="badge-ok">{t.bracket_updated}</span>}
+        {fillStatus === 'err' && <span className="badge-err">Error al actualizar</span>}
+      </div>
+
       <div className="phase-filter">
         <button className={`phase-chip ${phase==='all'?'active':''}`}
           onClick={() => setPhase('all')}>{t.all_phases}</button>
@@ -1036,6 +1207,7 @@ function App() {
     { id:'predict', l:t.nav_predict },
     { id:'results', l:t.nav_results },
     { id:'ranking', l:t.nav_ranking },
+    { id:'groups',  l:t.nav_groups },
     { id:'bracket', l:t.nav_bracket },
     ...(adminMode ? [{ id:'admin', l:'⚙️ Admin' }] : []),
   ];
@@ -1104,6 +1276,7 @@ function App() {
                               onGoAuth={() => setTab('auth')} />}
       {tab === 'results' && <ResultsPage t={t} matches={matches} />}
       {tab === 'ranking' && <LeaderboardPage t={t} user={user} />}
+      {tab === 'groups'  && <GroupsPage t={t} matches={matches} />}
       {tab === 'bracket' && <BracketPage t={t} matches={matches} />}
       {tab === 'admin'   && <AdminPage t={t} matches={matches}
                               onMatchUpdated={() => { loadMatches(); loadPredictions(); }} />}
