@@ -8,7 +8,7 @@
 5. Authorized redirect URIs añadir:
    ```
    https://<TU_REF>.supabase.co/auth/v1/callback
-   https://porra-marcadores.vercel.app  (o tu dominio)
+   https://porra-marcadores.vercel.app  (o tu domini)
    http://localhost:5173               (para desarrollo)
    ```
 6. Guardar **Client ID** y **Client Secret**
