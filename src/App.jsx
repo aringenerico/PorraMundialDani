@@ -425,7 +425,7 @@ function AuthPage({ t, onVerifying }) {
     });
     setLoading(false);
     if (error) {
-      setErr(error.message.includes('already') ? t.err_email_taken : t.err_general);
+      setErr(error.message.includes('already') ? t.err_email_taken : error.message);
     } else {
       onVerifying(email);
     }
