@@ -1076,10 +1076,15 @@ function AdminPage({ t, matches, onMatchUpdated }) {
 
   const saveResult = async (match) => {
     const r = results[match.id] || {};
-    if (r.h === undefined || r.a === undefined) return;
-    const { error } = await supabase.from('matches').update({
-      home_goals: parseInt(r.h), away_goals: parseInt(r.a), status: 'finished'
-    }).eq('id', match.id);
+    // Usa el valor del input local; si no se tocó, usa el valor ya guardado en BD
+    const h = r.h !== undefined ? r.h : String(match.home_goals ?? '');
+    const a = r.a !== undefined ? r.a : String(match.away_goals ?? '');
+    if (h === '' || a === '') return;
+    const { error } = await supabase.rpc('admin_save_result', {
+      p_match_id: match.id,
+      p_home:     parseInt(h),
+      p_away:     parseInt(a),
+    });
     if (!error) {
       setSaved(s => ({ ...s, [match.id]: true }));
       onMatchUpdated();
