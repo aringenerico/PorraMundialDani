@@ -515,12 +515,75 @@ const CSS = `
   .bracket-phase { margin-bottom:20px; }
   .bracket-phase-title { font-family:'Archivo Black',sans-serif; font-size:11px; color:var(--gold);
                          padding:0 16px 6px; text-transform:uppercase; letter-spacing:.08em; }
-  .bracket-match { background:var(--surface); border-radius:12px; padding:10px 14px;
-                   margin:0 16px 6px; display:flex; align-items:center; gap:8px; }
-  .bracket-team  { flex:1; font-size:13px; font-weight:600; display:flex;
-                   align-items:center; gap:6px; }
-  .bracket-score { font-family:'JetBrains Mono',monospace; font-size:16px; font-weight:700;
-                   color:var(--gold); min-width:48px; text-align:center; }
+
+  /* card átomo — sustituye .bracket-match */
+  .bracket-card { background:var(--surface); border:1px solid var(--line);
+    border-radius:12px; padding:10px 12px; margin:0 16px 8px; position:relative; }
+  .bracket-card.live { border-color:var(--coral);
+    box-shadow:0 0 0 1px rgba(255,77,109,0.4); }
+  .bracket-card-meta { display:flex; gap:6px; align-items:center;
+    font-size:9.5px; color:var(--mut); margin-bottom:6px;
+    font-family:'JetBrains Mono',monospace; letter-spacing:0.08em; }
+  .bracket-card-meta .mn { font-weight:700; }
+  .bracket-card-row { display:flex; align-items:center; gap:8px;
+    padding:5px 7px; border-radius:6px; }
+  .bracket-card-row + .bracket-card-row { margin-top:2px; }
+  .bracket-card-row.win { background:rgba(245,183,49,0.10); }
+  .bracket-card-row.win .team-name { color:var(--gold); font-weight:800; }
+  .bracket-card-row .team-name { flex:1; font-size:12.5px; font-weight:600; color:var(--txt); }
+  .bracket-card-row .score { font-family:'JetBrains Mono',monospace;
+    font-size:16px; font-weight:700; color:var(--gold); min-width:22px; text-align:right; }
+  .bracket-card-row .score.mute { color:var(--mut); }
+  .bracket-card-row .score.mine { color:var(--sky); }
+  .bracket-card-pred { margin-top:8px; padding-top:8px;
+    border-top:1px dashed var(--line);
+    font-size:10.5px; color:var(--mut);
+    display:flex; gap:6px; align-items:center; }
+  .bracket-card-pred .mono { font-family:'JetBrains Mono',monospace;
+    color:var(--sky); font-weight:700; }
+  .bracket-card-pred .chip-pts { margin-left:auto; font-family:'JetBrains Mono'; font-weight:700; }
+  .badge-live { background:var(--coral); color:#fff;
+    padding:1px 6px; border-radius:99px;
+    font-size:8.5px; font-weight:800; letter-spacing:0.08em; }
+
+  /* mode toggle */
+  .bracket-mode-toggle { display:flex; gap:6px; padding:10px 16px 0; }
+  .bracket-mode-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:700;
+    cursor:pointer; background:var(--surface); color:var(--mut); border:1px solid var(--line); }
+  .bracket-mode-chip.on { background:rgba(245,183,49,0.18); color:var(--gold); border-color:var(--gold); }
+  .bracket-mode-chip:disabled { opacity:0.4; cursor:not-allowed; }
+
+  /* tree */
+  .bracket-tree-wrap { overflow-x:auto; scrollbar-width:none; }
+  .bracket-tree-wrap::-webkit-scrollbar { display:none; }
+  .col-label { font-family:'Archivo Black',sans-serif; font-size:10px; color:var(--gold);
+    text-align:center; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px; }
+  .tree-card { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:6px 8px; }
+  .tree-card.accent { border-color:var(--gold);
+    background:linear-gradient(135deg,rgba(245,183,49,0.10),rgba(245,183,49,0.02)); }
+  .tree-card .tc-row { display:flex; align-items:center; gap:5px; padding:3px 4px;
+    border-radius:4px; font-size:11px; }
+  .tree-card .tc-row + .tc-row { margin-top:2px; }
+  .tree-card .tc-row.win { background:rgba(245,183,49,0.12); color:var(--gold); font-weight:800; }
+  .tree-card .tc-row .code { font-family:'JetBrains Mono'; font-size:10px; flex:1; }
+  .tree-card .tc-row .sc { font-family:'JetBrains Mono'; font-size:12px; font-weight:700; }
+
+  /* 3rd place & champion */
+  .third-place-banner { background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    margin:0; padding:10px 14px; }
+  .third-place-banner .tpb-label { font-family:'Archivo Black'; font-size:10px; color:var(--mut);
+    letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px; }
+  .champion-card { margin:16px 16px 8px; }
+  .champion-inner { background:linear-gradient(135deg,rgba(245,183,49,0.16),rgba(255,77,109,0.10));
+    border:1.5px solid var(--gold); border-radius:14px; padding:14px;
+    display:flex; align-items:center; gap:12px; }
+  .champion-label { font-size:10px; color:var(--gold); font-weight:800;
+    letter-spacing:0.1em; text-transform:uppercase; }
+  .champion-name { font-size:18px; font-weight:800; color:var(--txt); }
+  .champion-sub { font-size:11px; color:var(--mut); margin-top:2px; }
+  .bracket-empty-banner { margin:16px; padding:14px; background:var(--surface);
+    border:1px dashed var(--line); border-radius:12px; text-align:center;
+    font-size:13px; color:var(--mut); }
 
   /* ── GROUPS TABLE ── */
   .groups-grid { display:grid; gap:10px; padding:0 16px;
@@ -1361,13 +1424,328 @@ function LeaderboardPage({ t, user, leaderboard, loading }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// HELPERS: BRACKET
+// ─────────────────────────────────────────────────────────────────────────────
+function scoreChip(realH, realA, predH, predA) {
+  if (predH === null || predH === undefined) return null;
+  const exact  = predH === realH && predA === realA;
+  const result = Math.sign(predH - predA) === Math.sign(realH - realA);
+  const gh     = predH === realH ? 0.5 : 0;
+  const ga     = predA === realA ? 0.5 : 0;
+  const pts    = gh + ga + (result ? 1 : 0) + (exact ? 1 : 0);
+  if (exact)       return <span className="chip-pts" style={{color:'var(--ok)',marginLeft:'auto',fontFamily:'JetBrains Mono',fontWeight:700}}>✓ +3</span>;
+  if (result)      return <span className="chip-pts" style={{color:'var(--gold)',marginLeft:'auto',fontFamily:'JetBrains Mono',fontWeight:700}}>+{pts}</span>;
+  if (gh + ga > 0) return <span className="chip-pts" style={{color:'var(--sky)',marginLeft:'auto',fontFamily:'JetBrains Mono',fontWeight:700}}>+{gh+ga}</span>;
+  return <span className="chip-pts" style={{color:'var(--mut)',marginLeft:'auto',fontFamily:'JetBrains Mono',fontWeight:700}}>0 pts</span>;
+}
+
+function simulateUserBracket(matches, predByMatchNum) {
+  const ADVANCE = {
+    89:[74,77], 90:[73,75], 91:[76,78], 92:[79,80],
+    93:[83,84], 94:[81,82], 95:[86,88], 96:[85,87],
+    97:[89,90], 98:[93,94], 99:[91,92], 100:[95,96],
+    101:[97,98], 102:[99,100], 104:[101,102],
+  };
+  const byNum = new Map(matches.map(m => [m.match_number, m]));
+  const winner = mn => {
+    const m = byNum.get(mn); if (!m) return null;
+    const p = predByMatchNum.get(mn); if (!p) return null;
+    if (p.home_goals > p.away_goals) return m.home_team;
+    if (p.away_goals > p.home_goals) return m.away_team;
+    return null;
+  };
+  const loser = mn => {
+    const m = byNum.get(mn); if (!m) return null;
+    const p = predByMatchNum.get(mn); if (!p) return null;
+    if (p.home_goals > p.away_goals) return m.away_team;
+    if (p.away_goals > p.home_goals) return m.home_team;
+    return null;
+  };
+  const result = new Map();
+  matches.filter(m => m.phase !== 'group').forEach(m => {
+    let h = m.home_team, a = m.away_team;
+    if (ADVANCE[m.match_number]) {
+      const [na, nb] = ADVANCE[m.match_number];
+      h = winner(na) ?? h;
+      a = winner(nb) ?? a;
+    }
+    if (m.match_number === 103) { h = loser(101) ?? h; a = loser(102) ?? a; }
+    result.set(m.match_number, { home_team: h, away_team: a });
+  });
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: BRACKET CARD
+// ─────────────────────────────────────────────────────────────────────────────
+function BracketCard({ match, prediction = null, mode = 'real', simTeams = null }) {
+  const { home_goals, away_goals, status, match_number } = match;
+  const home     = simTeams?.home_team ?? match.home_team;
+  const away     = simTeams?.away_team ?? match.away_team;
+  const finished = status === 'finished';
+  const isLive   = status === 'live' || status === 'in_progress';
+
+  const h = mode === 'mine' ? prediction?.home_goals : home_goals;
+  const a = mode === 'mine' ? prediction?.away_goals : away_goals;
+
+  const winnerSide = (() => {
+    if (mode === 'mine' && prediction) {
+      return prediction.home_goals > prediction.away_goals ? 'home'
+           : prediction.away_goals > prediction.home_goals ? 'away' : '';
+    }
+    if (finished && home_goals !== null) {
+      return home_goals > away_goals ? 'home' : away_goals > home_goals ? 'away' : '';
+    }
+    return '';
+  })();
+
+  const scoreClass = !finished && mode === 'real' ? 'score mute'
+                   : mode === 'mine'               ? 'score mine'
+                   : 'score';
+
+  const chip = (mode === 'diff' && finished && prediction && home_goals !== null)
+    ? scoreChip(home_goals, away_goals, prediction.home_goals, prediction.away_goals)
+    : null;
+
+  return (
+    <div className={`bracket-card${isLive ? ' live' : ''}`}>
+      <div className="bracket-card-meta">
+        <span className="mn">P{match_number}</span>
+        {isLive && <span className="badge-live">EN VIVO</span>}
+        {chip}
+      </div>
+      <div className={`bracket-card-row${winnerSide === 'home' ? ' win' : ''}`}>
+        <FlagChip team={home} size={18}/>
+        <span className="team-name">{home || '?'}</span>
+        <span className={scoreClass}>
+          {(finished || mode === 'mine') && h !== null && h !== undefined ? h : '·'}
+        </span>
+      </div>
+      <div className={`bracket-card-row${winnerSide === 'away' ? ' win' : ''}`}>
+        <FlagChip team={away} size={18}/>
+        <span className="team-name">{away || '?'}</span>
+        <span className={scoreClass}>
+          {(finished || mode === 'mine') && a !== null && a !== undefined ? a : '·'}
+        </span>
+      </div>
+      {mode === 'diff' && prediction && (
+        <div className="bracket-card-pred">
+          Tu quiniela · <span className="mono">{prediction.home_goals}–{prediction.away_goals}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: MODE TOGGLE
+// ─────────────────────────────────────────────────────────────────────────────
+function ModeToggle({ mode, setMode, disabled }) {
+  return (
+    <div className="bracket-mode-toggle">
+      {[{id:'real',l:'Real'},{id:'mine',l:'Mi quiniela'},{id:'diff',l:'Diff'}].map(c => (
+        <button key={c.id}
+          className={`bracket-mode-chip${mode === c.id ? ' on' : ''}`}
+          disabled={disabled && c.id !== 'real'}
+          onClick={() => setMode(c.id)}>
+          {c.l}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: TREE CARD (compact for QF/SF/Final)
+// ─────────────────────────────────────────────────────────────────────────────
+function TreeCard({ match, prediction = null, mode = 'real', simTeams = null, accent = false }) {
+  if (!match) return <div className={`tree-card${accent ? ' accent' : ''}`} style={{minHeight:52}}/>;
+  const home     = simTeams?.home_team ?? match.home_team;
+  const away     = simTeams?.away_team ?? match.away_team;
+  const { home_goals, away_goals, status } = match;
+  const finished = status === 'finished';
+
+  const h = mode === 'mine' ? prediction?.home_goals : home_goals;
+  const a = mode === 'mine' ? prediction?.away_goals : away_goals;
+
+  const winnerSide = (() => {
+    if (mode === 'mine' && prediction)
+      return prediction.home_goals > prediction.away_goals ? 'home'
+           : prediction.away_goals > prediction.home_goals ? 'away' : '';
+    if (finished && home_goals !== null)
+      return home_goals > away_goals ? 'home' : away_goals > home_goals ? 'away' : '';
+    return '';
+  })();
+
+  const showScore = finished || mode === 'mine';
+  const codeOf    = t => t ? (COUNTRIES[t]?.code || t.slice(0,3).toUpperCase()) : '?';
+
+  return (
+    <div className={`tree-card${accent ? ' accent' : ''}`}>
+      <div className={`tc-row${winnerSide === 'home' ? ' win' : ''}`}>
+        <FlagChip team={home} size={14}/>
+        <span className="code">{codeOf(home)}</span>
+        <span className="sc">{showScore && h !== null && h !== undefined ? h : '·'}</span>
+      </div>
+      <div className={`tc-row${winnerSide === 'away' ? ' win' : ''}`}>
+        <FlagChip team={away} size={14}/>
+        <span className="code">{codeOf(away)}</span>
+        <span className="sc">{showScore && a !== null && a !== undefined ? a : '·'}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: SVG CONNECTORS
+// ─────────────────────────────────────────────────────────────────────────────
+function ConnectorsSVG() {
+  const s = 'var(--line)';
+  return (
+    <svg style={{position:'absolute',inset:0,pointerEvents:'none',width:'100%',height:'100%'}}
+         viewBox="0 0 420 360" preserveAspectRatio="none">
+      <path d={`M 130 46  H 145 V 108 H 165`} stroke={s} fill="none" strokeWidth="1.5"/>
+      <path d={`M 130 126 H 145 V 108 H 165`} stroke={s} fill="none" strokeWidth="1.5"/>
+      <path d={`M 130 210 H 145 V 272 H 165`} stroke={s} fill="none" strokeWidth="1.5"/>
+      <path d={`M 130 290 H 145 V 272 H 165`} stroke={s} fill="none" strokeWidth="1.5"/>
+      <path d={`M 295 108 H 310 V 190 H 330`} stroke={s} fill="none" strokeWidth="1.5"/>
+      <path d={`M 295 272 H 310 V 190 H 330`} stroke={s} fill="none" strokeWidth="1.5"/>
+    </svg>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION: BRACKET TREE (QF → SF → Final)
+// ─────────────────────────────────────────────────────────────────────────────
+function BracketTree({ matches, predByMatchNum, mode, simMap }) {
+  const qf  = matches.filter(m => m.phase === 'qf').sort((a,b) => a.match_number - b.match_number);
+  const sf  = matches.filter(m => m.phase === 'sf').sort((a,b) => a.match_number - b.match_number);
+  const fin = matches.find(m => m.phase === 'final');
+  if (!qf.length && !sf.length && !fin) return null;
+  return (
+    <div style={{marginTop:24}}>
+      <div className="bracket-phase-title" style={{padding:'0 16px 12px'}}>Cuadro final</div>
+      <div className="bracket-tree-wrap">
+        <div style={{
+          display:'grid', gridTemplateColumns:'130px 130px 140px',
+          gap:'20px', padding:'8px 16px 16px', position:'relative', minWidth:440,
+        }}>
+          {/* QF */}
+          <div style={{display:'flex',flexDirection:'column',gap:'24px'}}>
+            <div className="col-label">Cuartos</div>
+            {(qf.length ? qf : [null,null,null,null]).map((m,i) => (
+              <TreeCard key={m?.id ?? i} match={m}
+                prediction={m ? predByMatchNum.get(m.match_number) : null}
+                mode={mode} simTeams={m ? simMap?.get(m.match_number) : null}/>
+            ))}
+          </div>
+          {/* SF */}
+          <div style={{display:'flex',flexDirection:'column',justifyContent:'space-around',paddingTop:28}}>
+            <div className="col-label" style={{position:'absolute',top:8,left:150}}>Semis</div>
+            {(sf.length ? sf : [null,null]).map((m,i) => (
+              <TreeCard key={m?.id ?? i} match={m}
+                prediction={m ? predByMatchNum.get(m.match_number) : null}
+                mode={mode} simTeams={m ? simMap?.get(m.match_number) : null}/>
+            ))}
+          </div>
+          {/* Final */}
+          <div style={{display:'flex',flexDirection:'column',justifyContent:'center',gap:8}}>
+            <div className="col-label">Final</div>
+            {fin
+              ? <TreeCard match={fin} prediction={predByMatchNum.get(104)}
+                  mode={mode} simTeams={simMap?.get(104)} accent/>
+              : <div className="tree-card accent" style={{minHeight:52}}/>}
+          </div>
+          <ConnectorsSVG/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: THIRD PLACE CARD
+// ─────────────────────────────────────────────────────────────────────────────
+function ThirdPlaceCard({ match, predByMatchNum, mode, simMap }) {
+  if (!match) return null;
+  return (
+    <div style={{padding:'16px 16px 0'}}>
+      <div className="third-place-banner">
+        <div className="tpb-label">3er Puesto</div>
+        <BracketCard match={match}
+          prediction={predByMatchNum?.get(match.match_number)}
+          mode={mode}
+          simTeams={simMap?.get(match.match_number)}/>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: CHAMPION CARD
+// ─────────────────────────────────────────────────────────────────────────────
+function ChampionCard({ matches, predByMatchNum, mode, simMap }) {
+  const final = matches.find(m => m.phase === 'final');
+  if (!final || mode === 'real') return null;
+  const pred = predByMatchNum.get(104);
+  if (!pred) return null;
+  const home = simMap?.get(104)?.home_team ?? final.home_team;
+  const away = simMap?.get(104)?.away_team ?? final.away_team;
+  if (!home || !away) return null;
+  const winner = pred.home_goals > pred.away_goals ? home
+               : pred.away_goals > pred.home_goals ? away : null;
+  if (!winner) return null;
+  const loser = winner === home ? away : home;
+  return (
+    <div className="champion-card">
+      <div className="champion-inner">
+        <FlagChip team={winner} size={48}/>
+        <div style={{flex:1}}>
+          <div className="champion-label">Tu campeón</div>
+          <div className="champion-name">{winner}</div>
+          <div className="champion-sub">
+            Vence a {loser}
+            <span style={{fontFamily:'JetBrains Mono',color:'var(--txt)',marginLeft:6}}>
+              {pred.home_goals}–{pred.away_goals}
+            </span>
+          </div>
+        </div>
+        <div style={{fontFamily:'Archivo Black',fontSize:22,color:'var(--coral)'}}>+10</div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PAGE: BRACKET + GROUPS toggle
 // ─────────────────────────────────────────────────────────────────────────────
-function BracketPage({ t, matches }) {
-  const [view, setView] = useState('bracket'); // 'bracket' | 'groups'
+function BracketPage({ t, matches, predictions = [], user }) {
+  const [view, setView] = useState('bracket');
+  const [mode, setMode] = useState('real');
   const standings = useMemo(() => computeAllStandings(matches), [matches]);
 
-  const knockoutPhases = ['r32','r16','qf','sf','3rd','final'];
+  const predByMatchNum = useMemo(() => {
+    const m = new Map();
+    (predictions || []).forEach(p => {
+      const match = matches.find(x => x.id === p.match_id);
+      if (match) m.set(match.match_number, p);
+    });
+    return m;
+  }, [matches, predictions]);
+
+  const knockoutMatches = useMemo(
+    () => matches.filter(m => m.phase !== 'group'),
+    [matches]
+  );
+
+  const simMap = useMemo(
+    () => mode === 'mine' ? simulateUserBracket(matches, predByMatchNum) : null,
+    [matches, predByMatchNum, mode]
+  );
+
+  const hasKnockout = knockoutMatches.length > 0;
+  const hasMyPreds  = predByMatchNum.size > 0;
+  const effectiveMode = (!user && mode !== 'real') ? 'real' : mode;
 
   return (
     <div className="page">
@@ -1384,37 +1762,54 @@ function BracketPage({ t, matches }) {
       </div>
 
       {view === 'bracket' && (
-        <div style={{marginTop:14}}>
-          {knockoutPhases.map(ph => {
-            const phMatches = matches.filter(m => m.phase === ph);
-            if (!phMatches.length) return null;
-            return (
-              <div key={ph} className="bracket-phase">
-                <div className="bracket-phase-title">{PHASE_LABELS[ph]}</div>
-                {phMatches.map(m => (
-                  <div key={m.id} className="bracket-match">
-                    <div className="bracket-team">
-                      <FlagChip team={m.home_team} size={20}/>
-                      <span>{m.home_team||'?'}</span>
-                    </div>
-                    <div className="bracket-score">
-                      {m.status==='finished' ? `${m.home_goals}–${m.away_goals}` : '·–·'}
-                    </div>
-                    <div className="bracket-team" style={{justifyContent:'flex-end',flexDirection:'row-reverse'}}>
-                      <FlagChip team={m.away_team} size={20}/>
-                      <span>{m.away_team||'?'}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-          {knockoutPhases.every(ph => !matches.filter(m=>m.phase===ph).length) && (
+        <>
+          <ModeToggle mode={mode} setMode={setMode} disabled={!user}/>
+
+          {!user && mode !== 'real' && (
+            <div className="bracket-empty-banner">Inicia sesión para ver tu quiniela</div>
+          )}
+
+          {!hasKnockout && (
             <div style={{padding:'40px',textAlign:'center',color:'var(--mut)'}}>
               El cuadro eliminatorio se genera tras la fase de grupos.
             </div>
           )}
-        </div>
+
+          {hasKnockout && user && !hasMyPreds && mode !== 'real' && (
+            <div className="bracket-empty-banner">
+              Aún no has predicho la fase eliminatoria.
+            </div>
+          )}
+
+          {hasKnockout && (
+            <>
+              {['r32','r16'].map(ph => {
+                const phMatches = knockoutMatches.filter(m => m.phase === ph);
+                if (!phMatches.length) return null;
+                return (
+                  <div key={ph} className="bracket-phase">
+                    <div className="bracket-phase-title">{PHASE_LABELS[ph]}</div>
+                    {phMatches.map(m => (
+                      <BracketCard key={m.id} match={m}
+                        prediction={predByMatchNum.get(m.match_number)}
+                        mode={effectiveMode}
+                        simTeams={simMap?.get(m.match_number)}/>
+                    ))}
+                  </div>
+                );
+              })}
+
+              <BracketTree matches={knockoutMatches} predByMatchNum={predByMatchNum}
+                mode={effectiveMode} simMap={simMap}/>
+
+              <ThirdPlaceCard match={knockoutMatches.find(m => m.phase === '3rd')}
+                predByMatchNum={predByMatchNum} mode={effectiveMode} simMap={simMap}/>
+
+              <ChampionCard matches={knockoutMatches} predByMatchNum={predByMatchNum}
+                mode={effectiveMode} simMap={simMap}/>
+            </>
+          )}
+        </>
       )}
 
       {view === 'groups' && (
@@ -1850,7 +2245,7 @@ function App() {
                             predictions={predictions} onSave={()=>{loadPredictions();loadLeaderboard();}}
                             onGoAuth={()=>setTab('auth')}/>}
       {tab==='ranking' && <LeaderboardPage t={t} user={user} leaderboard={leaderboard} loading={lbLoading}/>}
-      {tab==='bracket' && <BracketPage t={t} matches={matches}/>}
+      {tab==='bracket' && <BracketPage t={t} matches={matches} predictions={predictions} user={user}/>}
       {tab==='me'      && <ProfilePage t={t} user={user} leaderboard={leaderboard}
                             matches={matches} predictions={predictions}
                             onGoAuth={()=>setTab('auth')} signOut={signOut}/>}
