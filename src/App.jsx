@@ -587,7 +587,7 @@ const fmtDate = d => d
   : '—';
 const isBeforeDeadline = dl => new Date() < new Date(dl);
 const initials = name => (name||'?').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase();
-const fmt€ = n => `${n.toLocaleString('es-ES')}€`;
+const fmtEur = n => `${n.toLocaleString('es-ES')}€`;
 
 // ─── SVG ICONS ───────────────────────────────────────────────────────────────
 const ICON_PATHS = {
@@ -1009,8 +1009,8 @@ function HomePage({ t, user, matches, leaderboard, onGoAuth, onTabChange }) {
           <div style={{padding:'0 16px'}}>
             <div className="prize-card">
               <div style={{display:'flex',alignItems:'baseline',gap:10,marginBottom:4}}>
-                <div className="prize-total">{fmt€(totalPool)}</div>
-                <div style={{fontSize:12,color:'var(--mut)'}}>{leaderboard.length} participantes × {fmt€(PRIZE_PER_HEAD)}</div>
+                <div className="prize-total">{fmtEur(totalPool)}</div>
+                <div style={{fontSize:12,color:'var(--mut)'}}>{leaderboard.length} participantes × {fmtEur(PRIZE_PER_HEAD)}</div>
               </div>
               {[
                 {medal:'🥇',label:'1er Premio',pct:PRIZE_DIST[0]},
@@ -1021,7 +1021,7 @@ function HomePage({ t, user, matches, leaderboard, onGoAuth, onTabChange }) {
                   <span className="prize-medal">{row.medal}</span>
                   <span className="prize-name">{row.label}</span>
                   <span className="prize-pct">{(row.pct*100).toFixed(0)}%</span>
-                  <span className="prize-amt">{fmt€(Math.floor(totalPool*row.pct))}</span>
+                  <span className="prize-amt">{fmtEur(Math.floor(totalPool*row.pct))}</span>
                 </div>
               ))}
             </div>
@@ -1252,13 +1252,13 @@ function LeaderboardPage({ t, user, leaderboard, loading }) {
                   🏆 {t.prize_pool}
                 </div>
                 <div style={{fontFamily:'JetBrains Mono,monospace',fontSize:28,fontWeight:700,color:'var(--gold)',lineHeight:1}}>
-                  {fmt€(totalPool)}
+                  {fmtEur(totalPool)}
                 </div>
               </div>
               <div style={{flex:1}}/>
               <div style={{textAlign:'right',fontSize:12,color:'var(--mut)'}}>
                 {[{m:'🥇',p:PRIZE_DIST[0]},{m:'🥈',p:PRIZE_DIST[1]},{m:'🥉',p:PRIZE_DIST[2]}].map((r,i)=>(
-                  <div key={i}>{r.m} {fmt€(Math.floor(totalPool*r.p))}</div>
+                  <div key={i}>{r.m} {fmtEur(Math.floor(totalPool*r.p))}</div>
                 ))}
               </div>
             </div>
