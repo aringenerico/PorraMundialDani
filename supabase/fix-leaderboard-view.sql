@@ -15,7 +15,9 @@
 -- Ejecutar en: Supabase Dashboard → SQL Editor → New Query
 -- ─────────────────────────────────────────────────────────────────────────────
 
-CREATE OR REPLACE VIEW leaderboard AS
+DROP VIEW IF EXISTS leaderboard;
+
+CREATE VIEW leaderboard AS
 SELECT
   p.user_id,
   u.raw_user_meta_data->>'full_name'   AS display_name,
