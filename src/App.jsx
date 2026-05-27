@@ -1599,64 +1599,135 @@ function TreeCard({ match, prediction = null, mode = 'real', simTeams = null, ac
 // ─────────────────────────────────────────────────────────────────────────────
 // ATOM: SVG CONNECTORS
 // ─────────────────────────────────────────────────────────────────────────────
-function ConnectorsSVG() {
-  const s = 'var(--line)';
-  return (
-    <svg style={{position:'absolute',inset:0,pointerEvents:'none',width:'100%',height:'100%'}}
-         viewBox="0 0 420 360" preserveAspectRatio="none">
-      <path d={`M 130 46  H 145 V 108 H 165`} stroke={s} fill="none" strokeWidth="1.5"/>
-      <path d={`M 130 126 H 145 V 108 H 165`} stroke={s} fill="none" strokeWidth="1.5"/>
-      <path d={`M 130 210 H 145 V 272 H 165`} stroke={s} fill="none" strokeWidth="1.5"/>
-      <path d={`M 130 290 H 145 V 272 H 165`} stroke={s} fill="none" strokeWidth="1.5"/>
-      <path d={`M 295 108 H 310 V 190 H 330`} stroke={s} fill="none" strokeWidth="1.5"/>
-      <path d={`M 295 272 H 310 V 190 H 330`} stroke={s} fill="none" strokeWidth="1.5"/>
-    </svg>
-  );
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION: BRACKET TREE (R16 → QF → SF → Final)
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION: BRACKET TREE (QF → SF → Final)
-// ─────────────────────────────────────────────────────────────────────────────
+// Bracket pairing:
+//   [89,90]→QF97  [93,94]→QF98  [91,92]→QF99  [95,96]→QF100
+//   [QF97,QF98]→SF101  [QF99,QF100]→SF102  [SF101,SF102]→F104
+const BT_R16 = [89, 90, 93, 94, 91, 92, 95, 96];
+const BT_QF  = [97, 98, 99, 100];
+const BT_SF  = [101, 102];
+
+// Layout constants (px)
+const BT_CH = 52;   // card height
+const BT_CG = 10;   // card gap
+const BT_U  = BT_CH + BT_CG;   // 62 — one slot
+const BT_CW = 100;  // column width
+const BT_GW = 18;   // gap between columns (for connectors)
+const BT_FW = 110;  // final card width (wider)
+
+// Column left edges
+const BT_X = {
+  r16:   0,
+  qf:    BT_CW + BT_GW,          // 118
+  sf:    2*(BT_CW + BT_GW),      // 236
+  fin:   3*(BT_CW + BT_GW),      // 354
+};
+const BT_W = BT_X.fin + BT_FW;   // 464
+const BT_H = 8 * BT_U - BT_CG;  // 486
+
+// Vertical centers of each card by round
+const btCY = {
+  r16: i => i * BT_U + BT_CH / 2,
+  qf:  i => (btCY.r16(i*2) + btCY.r16(i*2+1)) / 2,
+  sf:  i => (btCY.qf(i*2)  + btCY.qf(i*2+1))  / 2,
+  fin: ()=> (btCY.sf(0) + btCY.sf(1)) / 2,
+};
+
 function BracketTree({ matches, predByMatchNum, mode, simMap }) {
-  const qf  = matches.filter(m => m.phase === 'qf').sort((a,b) => a.match_number - b.match_number);
-  const sf  = matches.filter(m => m.phase === 'sf').sort((a,b) => a.match_number - b.match_number);
-  const fin = matches.find(m => m.phase === 'final');
-  if (!qf.length && !sf.length && !fin) return null;
+  const byNum = new Map(matches.map(m => [m.match_number, m]));
+
+  const mkCard = (mn, accent=false) => (
+    <TreeCard
+      match={byNum.get(mn) ?? null}
+      prediction={predByMatchNum.get(mn)}
+      mode={mode}
+      simTeams={simMap?.get(mn)}
+      accent={accent}
+    />
+  );
+
+  // connector: right edge of source col → midpoint → left edge of dest col
+  const conn = (fromX, fromY, toX, toY) => {
+    const mx = fromX + BT_GW / 2;
+    return `M ${fromX} ${fromY} H ${mx} V ${toY} H ${toX}`;
+  };
+
   return (
-    <div style={{marginTop:24}}>
-      <div className="bracket-phase-title" style={{padding:'0 16px 12px'}}>Cuadro final</div>
-      <div className="bracket-tree-wrap">
-        <div style={{
-          display:'grid', gridTemplateColumns:'130px 130px 140px',
-          gap:'20px', padding:'8px 16px 16px', position:'relative', minWidth:440,
-        }}>
-          {/* QF */}
-          <div style={{display:'flex',flexDirection:'column',gap:'24px'}}>
-            <div className="col-label">Cuartos</div>
-            {(qf.length ? qf : [null,null,null,null]).map((m,i) => (
-              <TreeCard key={m?.id ?? i} match={m}
-                prediction={m ? predByMatchNum.get(m.match_number) : null}
-                mode={mode} simTeams={m ? simMap?.get(m.match_number) : null}/>
+    <div style={{marginTop:16,paddingBottom:16}}>
+      <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch',scrollbarWidth:'none',
+                   msOverflowStyle:'none'}}>
+        <style>{`.bt-scroll::-webkit-scrollbar{display:none}`}</style>
+        <div className="bt-scroll" style={{padding:'0 16px'}}>
+
+          {/* Column headers */}
+          <div style={{position:'relative',height:20,marginBottom:4,width:BT_W}}>
+            {[
+              {l:'OCTAVOS', x: BT_X.r16 + BT_CW/2},
+              {l:'CUARTOS', x: BT_X.qf  + BT_CW/2},
+              {l:'SEMIS',   x: BT_X.sf  + BT_CW/2},
+              {l:'FINAL',   x: BT_X.fin + BT_FW/2},
+            ].map(({l,x}) => (
+              <span key={l} style={{
+                position:'absolute', left:x, transform:'translateX(-50%)',
+                fontFamily:'Archivo Black', fontSize:9, color:'var(--gold)',
+                letterSpacing:'0.12em', textTransform:'uppercase', whiteSpace:'nowrap',
+              }}>{l}</span>
             ))}
           </div>
-          {/* SF */}
-          <div style={{display:'flex',flexDirection:'column',justifyContent:'space-around',paddingTop:28}}>
-            <div className="col-label" style={{position:'absolute',top:8,left:150}}>Semis</div>
-            {(sf.length ? sf : [null,null]).map((m,i) => (
-              <TreeCard key={m?.id ?? i} match={m}
-                prediction={m ? predByMatchNum.get(m.match_number) : null}
-                mode={mode} simTeams={m ? simMap?.get(m.match_number) : null}/>
+
+          {/* Bracket grid */}
+          <div style={{position:'relative', width:BT_W, height:BT_H}}>
+
+            {/* SVG connectors */}
+            <svg width={BT_W} height={BT_H}
+                 style={{position:'absolute',inset:0,pointerEvents:'none'}}>
+              {/* R16 → QF */}
+              {BT_R16.map((_, i) => (
+                <path key={`rq${i}`} fill="none" stroke="var(--line)" strokeWidth="1.5"
+                  d={conn(BT_X.r16+BT_CW, btCY.r16(i), BT_X.qf, btCY.qf(Math.floor(i/2)))}/>
+              ))}
+              {/* QF → SF */}
+              {BT_QF.map((_, i) => (
+                <path key={`qs${i}`} fill="none" stroke="var(--line)" strokeWidth="1.5"
+                  d={conn(BT_X.qf+BT_CW, btCY.qf(i), BT_X.sf, btCY.sf(Math.floor(i/2)))}/>
+              ))}
+              {/* SF → Final */}
+              {BT_SF.map((_, i) => (
+                <path key={`sf${i}`} fill="none" stroke="var(--line)" strokeWidth="1.5"
+                  d={conn(BT_X.sf+BT_CW, btCY.sf(i), BT_X.fin, btCY.fin())}/>
+              ))}
+            </svg>
+
+            {/* R16 cards */}
+            {BT_R16.map((mn,i) => (
+              <div key={mn} style={{position:'absolute', left:BT_X.r16, top:i*BT_U, width:BT_CW}}>
+                {mkCard(mn)}
+              </div>
             ))}
+
+            {/* QF cards */}
+            {BT_QF.map((mn,i) => (
+              <div key={mn} style={{position:'absolute', left:BT_X.qf, top:btCY.qf(i)-BT_CH/2, width:BT_CW}}>
+                {mkCard(mn)}
+              </div>
+            ))}
+
+            {/* SF cards */}
+            {BT_SF.map((mn,i) => (
+              <div key={mn} style={{position:'absolute', left:BT_X.sf, top:btCY.sf(i)-BT_CH/2, width:BT_CW}}>
+                {mkCard(mn)}
+              </div>
+            ))}
+
+            {/* Final card */}
+            <div style={{position:'absolute', left:BT_X.fin, top:btCY.fin()-BT_CH/2, width:BT_FW}}>
+              {mkCard(104, true)}
+            </div>
+
           </div>
-          {/* Final */}
-          <div style={{display:'flex',flexDirection:'column',justifyContent:'center',gap:8}}>
-            <div className="col-label">Final</div>
-            {fin
-              ? <TreeCard match={fin} prediction={predByMatchNum.get(104)}
-                  mode={mode} simTeams={simMap?.get(104)} accent/>
-              : <div className="tree-card accent" style={{minHeight:52}}/>}
-          </div>
-          <ConnectorsSVG/>
         </div>
       </div>
     </div>
@@ -1783,7 +1854,7 @@ function BracketPage({ t, matches, predictions = [], user }) {
 
           {hasKnockout && (
             <>
-              {['r32','r16'].map(ph => {
+              {['r32'].map(ph => {
                 const phMatches = knockoutMatches.filter(m => m.phase === ph);
                 if (!phMatches.length) return null;
                 return (
