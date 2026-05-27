@@ -655,6 +655,34 @@ const isBeforeDeadline = dl => new Date() < new Date(dl);
 const initials = name => (name||'?').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase();
 const fmtEur = n => `${n.toLocaleString('es-ES')}€`;
 
+// ─── COUNTDOWN HELPERS ───────────────────────────────────────────────────────
+/** Devuelve la jornada con deadline más cercano aún no vencido */
+function getNextOpenMatchday(matches) {
+  const now = Date.now();
+  const open = matches
+    .filter(m => m.deadline && new Date(m.deadline).getTime() > now)
+    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+  if (!open.length) return null;
+  const md = open[0].matchday;
+  return { matchday: md, deadline: open[0].deadline, matches: matches.filter(x => x.matchday === md) };
+}
+
+/** Hook reactivo — actualiza cada minuto */
+function useCountdown(deadline) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, []);
+  if (!deadline) return null;
+  const diff = new Date(deadline).getTime() - now;
+  if (diff <= 0) return { d: 0, h: 0, m: 0, urgent: true };
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  return { d, h, m, urgent: diff < 6 * 3600 * 1000 };
+}
+
 // ─── SVG ICONS ───────────────────────────────────────────────────────────────
 const ICON_PATHS = {
   home:    'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10',
