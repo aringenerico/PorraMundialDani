@@ -558,15 +558,18 @@ const CSS = `
   .bracket-tree-wrap::-webkit-scrollbar { display:none; }
   .col-label { font-family:'Archivo Black',sans-serif; font-size:10px; color:var(--gold);
     text-align:center; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px; }
-  .tree-card { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:6px 8px; }
+  .tree-card { background:var(--surface); border:1px solid var(--line); border-radius:10px;
+    padding:9px 10px; height:64px; box-sizing:border-box;
+    display:flex; flex-direction:column; justify-content:space-between; }
   .tree-card.accent { border-color:var(--gold);
     background:linear-gradient(135deg,rgba(245,183,49,0.10),rgba(245,183,49,0.02)); }
-  .tree-card .tc-row { display:flex; align-items:center; gap:5px; padding:3px 4px;
-    border-radius:4px; font-size:11px; }
-  .tree-card .tc-row + .tc-row { margin-top:2px; }
+  .tree-card .tc-row { display:flex; align-items:center; gap:6px; padding:3px 5px;
+    border-radius:5px; }
   .tree-card .tc-row.win { background:rgba(245,183,49,0.12); color:var(--gold); font-weight:800; }
-  .tree-card .tc-row .code { font-family:'JetBrains Mono'; font-size:10px; flex:1; }
-  .tree-card .tc-row .sc { font-family:'JetBrains Mono'; font-size:12px; font-weight:700; }
+  .tree-card .tc-row .code { font-family:'JetBrains Mono'; font-size:12px; flex:1;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tree-card .tc-row .sc { font-family:'JetBrains Mono'; font-size:16px; font-weight:700;
+    min-width:18px; text-align:right; }
 
   /* 3rd place & champion */
   .third-place-banner { background:var(--surface); border:1px solid var(--line); border-radius:12px;
@@ -1559,11 +1562,12 @@ function ModeToggle({ mode, setMode, disabled }) {
 // ATOM: TREE CARD (compact for QF/SF/Final)
 // ─────────────────────────────────────────────────────────────────────────────
 function TreeCard({ match, prediction = null, mode = 'real', simTeams = null, accent = false }) {
-  if (!match) return <div className={`tree-card${accent ? ' accent' : ''}`} style={{minHeight:52}}/>;
+  if (!match) return <div className={`tree-card${accent ? ' accent' : ''}`}/>;
   const home     = simTeams?.home_team ?? match.home_team;
   const away     = simTeams?.away_team ?? match.away_team;
   const { home_goals, away_goals, status } = match;
   const finished = status === 'finished';
+  const isLive   = status === 'live' || status === 'in_progress';
 
   const h = mode === 'mine' ? prediction?.home_goals : home_goals;
   const a = mode === 'mine' ? prediction?.away_goals : away_goals;
@@ -1578,19 +1582,25 @@ function TreeCard({ match, prediction = null, mode = 'real', simTeams = null, ac
   })();
 
   const showScore = finished || mode === 'mine';
-  const codeOf    = t => t ? (COUNTRIES[t]?.code || t.slice(0,3).toUpperCase()) : '?';
+  // Show short name if available, fall back to 3-letter code
+  const labelOf = tm => tm ? (COUNTRIES[tm]?.name || COUNTRIES[tm]?.code || tm.slice(0,3).toUpperCase()) : '?';
+  const scoreColor = mode === 'mine' ? 'var(--sky)' : 'var(--gold)';
 
   return (
-    <div className={`tree-card${accent ? ' accent' : ''}`}>
+    <div className={`tree-card${accent ? ' accent' : ''}${isLive ? ' live' : ''}`}>
       <div className={`tc-row${winnerSide === 'home' ? ' win' : ''}`}>
-        <FlagChip team={home} size={14}/>
-        <span className="code">{codeOf(home)}</span>
-        <span className="sc">{showScore && h !== null && h !== undefined ? h : '·'}</span>
+        <FlagChip team={home} size={16}/>
+        <span className="code">{labelOf(home)}</span>
+        <span className="sc" style={{color: showScore ? scoreColor : 'var(--mut)'}}>
+          {showScore && h !== null && h !== undefined ? h : '·'}
+        </span>
       </div>
       <div className={`tc-row${winnerSide === 'away' ? ' win' : ''}`}>
-        <FlagChip team={away} size={14}/>
-        <span className="code">{codeOf(away)}</span>
-        <span className="sc">{showScore && a !== null && a !== undefined ? a : '·'}</span>
+        <FlagChip team={away} size={16}/>
+        <span className="code">{labelOf(away)}</span>
+        <span className="sc" style={{color: showScore ? scoreColor : 'var(--mut)'}}>
+          {showScore && a !== null && a !== undefined ? a : '·'}
+        </span>
       </div>
     </div>
   );
@@ -1610,23 +1620,23 @@ const BT_R16 = [89, 90, 93, 94, 91, 92, 95, 96];
 const BT_QF  = [97, 98, 99, 100];
 const BT_SF  = [101, 102];
 
-// Layout constants (px)
-const BT_CH = 52;   // card height
-const BT_CG = 10;   // card gap
-const BT_U  = BT_CH + BT_CG;   // 62 — one slot
-const BT_CW = 100;  // column width
-const BT_GW = 18;   // gap between columns (for connectors)
-const BT_FW = 110;  // final card width (wider)
+// Layout constants (px) — big enough to be readable on mobile
+const BT_CH = 64;   // card height
+const BT_CG = 14;   // card gap
+const BT_U  = BT_CH + BT_CG;   // 78 — one slot
+const BT_CW = 140;  // column width
+const BT_GW = 24;   // gap between columns (for connectors)
+const BT_FW = 150;  // final card width (wider)
 
 // Column left edges
 const BT_X = {
   r16:   0,
-  qf:    BT_CW + BT_GW,          // 118
-  sf:    2*(BT_CW + BT_GW),      // 236
-  fin:   3*(BT_CW + BT_GW),      // 354
+  qf:    BT_CW + BT_GW,          // 164
+  sf:    2*(BT_CW + BT_GW),      // 328
+  fin:   3*(BT_CW + BT_GW),      // 492
 };
-const BT_W = BT_X.fin + BT_FW;   // 464
-const BT_H = 8 * BT_U - BT_CG;  // 486
+const BT_W = BT_X.fin + BT_FW;   // 642
+const BT_H = 8 * BT_U - BT_CG;  // 610
 
 // Vertical centers of each card by round
 const btCY = {
@@ -1788,10 +1798,11 @@ function ChampionCard({ matches, predByMatchNum, mode, simMap }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PAGE: BRACKET + GROUPS toggle
+// PAGE: BRACKET (Lista / Cuadro / Grupos)
 // ─────────────────────────────────────────────────────────────────────────────
 function BracketPage({ t, matches, predictions = [], user }) {
-  const [view, setView] = useState('bracket');
+  // 'list' = todas las fases como lista  |  'tree' = árbol visual  |  'groups' = standings
+  const [view, setView] = useState('tree');
   const [mode, setMode] = useState('real');
   const standings = useMemo(() => computeAllStandings(matches), [matches]);
 
@@ -1818,64 +1829,90 @@ function BracketPage({ t, matches, predictions = [], user }) {
   const hasMyPreds  = predByMatchNum.size > 0;
   const effectiveMode = (!user && mode !== 'real') ? 'real' : mode;
 
+  const VIEWS = [
+    {id:'list',  l:'Lista'},
+    {id:'tree',  l:'Cuadro'},
+    {id:'groups',l:'Grupos'},
+  ];
+
   return (
     <div className="page">
-      <div style={{padding:'14px 16px 0', display:'flex', gap:8}}>
-        <div style={{display:'flex',background:'var(--surface)',borderRadius:999,padding:3,border:'1px solid var(--line)'}}>
-          {[{id:'bracket',l:t.bracket_title},{id:'groups',l:t.groups_title}].map(v=>(
-            <button key={v.id} onClick={()=>setView(v.id)} style={{
+      {/* ── Top 3-tab toggle ── */}
+      <div style={{padding:'14px 16px 0'}}>
+        <div style={{display:'flex',background:'var(--surface)',borderRadius:999,padding:3,
+                     border:'1px solid var(--line)',width:'fit-content'}}>
+          {VIEWS.map(v => (
+            <button key={v.id} onClick={() => setView(v.id)} style={{
               padding:'5px 14px', borderRadius:999, fontSize:12, fontWeight:700,
-              background:view===v.id?'var(--gold)':'transparent',
-              color:view===v.id?'var(--bg-deep)':'var(--mut)', border:'none', cursor:'pointer',
+              background: view===v.id ? 'var(--gold)' : 'transparent',
+              color: view===v.id ? 'var(--bg-deep)' : 'var(--mut)',
+              border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
             }}>{v.l}</button>
           ))}
         </div>
       </div>
 
-      {view === 'bracket' && (
+      {/* ── Mode toggle (List + Tree) ── */}
+      {(view === 'list' || view === 'tree') && (
+        <ModeToggle mode={mode} setMode={setMode} disabled={!user}/>
+      )}
+
+      {/* ── Empty state banners ── */}
+      {(view === 'list' || view === 'tree') && !user && mode !== 'real' && (
+        <div className="bracket-empty-banner">Inicia sesión para ver tu quiniela</div>
+      )}
+      {(view === 'list' || view === 'tree') && hasKnockout && user && !hasMyPreds && mode !== 'real' && (
+        <div className="bracket-empty-banner">Aún no has predicho la fase eliminatoria.</div>
+      )}
+
+      {/* ══════════════════════════════════════════════
+          VIEW: LISTA — todas las fases como tarjetas
+         ══════════════════════════════════════════════ */}
+      {view === 'list' && (
         <>
-          <ModeToggle mode={mode} setMode={setMode} disabled={!user}/>
-
-          {!user && mode !== 'real' && (
-            <div className="bracket-empty-banner">Inicia sesión para ver tu quiniela</div>
-          )}
-
           {!hasKnockout && (
             <div style={{padding:'40px',textAlign:'center',color:'var(--mut)'}}>
               El cuadro eliminatorio se genera tras la fase de grupos.
             </div>
           )}
+          {hasKnockout && ['r32','r16','qf','sf','3rd','final'].map(ph => {
+            const phMatches = knockoutMatches.filter(m => m.phase === ph);
+            if (!phMatches.length) return null;
+            return (
+              <div key={ph} className="bracket-phase">
+                <div className="bracket-phase-title">{PHASE_LABELS[ph]}</div>
+                {phMatches.map(m => (
+                  <BracketCard key={m.id} match={m}
+                    prediction={predByMatchNum.get(m.match_number)}
+                    mode={effectiveMode}
+                    simTeams={simMap?.get(m.match_number)}/>
+                ))}
+              </div>
+            );
+          })}
+          {hasKnockout && (
+            <ChampionCard matches={knockoutMatches} predByMatchNum={predByMatchNum}
+              mode={effectiveMode} simMap={simMap}/>
+          )}
+        </>
+      )}
 
-          {hasKnockout && user && !hasMyPreds && mode !== 'real' && (
-            <div className="bracket-empty-banner">
-              Aún no has predicho la fase eliminatoria.
+      {/* ══════════════════════════════════════════════
+          VIEW: CUADRO — árbol visual R16 → Final
+         ══════════════════════════════════════════════ */}
+      {view === 'tree' && (
+        <>
+          {!hasKnockout && (
+            <div style={{padding:'40px',textAlign:'center',color:'var(--mut)'}}>
+              El cuadro eliminatorio se genera tras la fase de grupos.
             </div>
           )}
-
           {hasKnockout && (
             <>
-              {['r32'].map(ph => {
-                const phMatches = knockoutMatches.filter(m => m.phase === ph);
-                if (!phMatches.length) return null;
-                return (
-                  <div key={ph} className="bracket-phase">
-                    <div className="bracket-phase-title">{PHASE_LABELS[ph]}</div>
-                    {phMatches.map(m => (
-                      <BracketCard key={m.id} match={m}
-                        prediction={predByMatchNum.get(m.match_number)}
-                        mode={effectiveMode}
-                        simTeams={simMap?.get(m.match_number)}/>
-                    ))}
-                  </div>
-                );
-              })}
-
               <BracketTree matches={knockoutMatches} predByMatchNum={predByMatchNum}
                 mode={effectiveMode} simMap={simMap}/>
-
               <ThirdPlaceCard match={knockoutMatches.find(m => m.phase === '3rd')}
                 predByMatchNum={predByMatchNum} mode={effectiveMode} simMap={simMap}/>
-
               <ChampionCard matches={knockoutMatches} predByMatchNum={predByMatchNum}
                 mode={effectiveMode} simMap={simMap}/>
             </>
@@ -1883,6 +1920,9 @@ function BracketPage({ t, matches, predictions = [], user }) {
         </>
       )}
 
+      {/* ══════════════════════════════════════════════
+          VIEW: GRUPOS — standings
+         ══════════════════════════════════════════════ */}
       {view === 'groups' && (
         <div style={{marginTop:14}}>
           {Object.keys(standings).length === 0 && (
