@@ -886,6 +886,24 @@ function userColor(userId) {
   return USER_AVATAR_COLORS[Math.abs(h) % USER_AVATAR_COLORS.length];
 }
 
+// ─── STREAK HELPER ───────────────────────────────────────────────────────────
+function calcStreak(predictions, matches) {
+  const items = predictions
+    .map(p => {
+      const m = matches.find(x => x.id === p.match_id);
+      if (!m || m.status !== 'finished' || m.home_goals === null) return null;
+      return { date: new Date(m.match_date || 0), pts: p.pts_total || 0 };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.date - b.date);
+  let streak = 0;
+  for (let i = items.length - 1; i >= 0; i--) {
+    if (items[i].pts >= 1) streak++;
+    else break;
+  }
+  return streak;
+}
+
 // ─── COUNTDOWN HELPERS ───────────────────────────────────────────────────────
 /** Devuelve la jornada con deadline más cercano aún no vencido */
 function getNextOpenMatchday(matches) {
@@ -1167,7 +1185,7 @@ function VerifyScreen({ t, email }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: HOME
 // ─────────────────────────────────────────────────────────────────────────────
-function HomePage({ t, user, matches, leaderboard, onGoAuth, onTabChange }) {
+function HomePage({ t, user, matches, predictions, leaderboard, onGoAuth, onTabChange }) {
   // Next deadline
   const nextDeadline = useMemo(() => {
     const upcoming = matches
@@ -1192,6 +1210,29 @@ function HomePage({ t, user, matches, leaderboard, onGoAuth, onTabChange }) {
     const idx = leaderboard.findIndex(r => r.user_id === user.id);
     return idx >= 0 ? { rank: idx+1, ...leaderboard[idx] } : null;
   }, [user, leaderboard]);
+
+  // Gap to leader
+  const gapToLeader = useMemo(() => {
+    if (!myRow || !leaderboard.length) return null;
+    const leader = leaderboard[0];
+    if (leader.user_id === user?.id) return null; // I am the leader
+    return Math.round((leader.total_pts - myRow.total_pts) * 10) / 10;
+  }, [myRow, leaderboard, user]);
+
+  // Streak
+  const streak = useMemo(() =>
+    user && predictions?.length ? calcStreak(predictions, matches) : 0,
+    [predictions, matches, user]
+  );
+
+  // Upcoming matches (next 5 not yet played)
+  const upcomingMatches = useMemo(() => {
+    const now = Date.now();
+    return matches
+      .filter(m => m.status === 'scheduled' && m.match_date && new Date(m.match_date) > now && m.home_team && m.away_team)
+      .sort((a, b) => new Date(a.match_date) - new Date(b.match_date))
+      .slice(0, 4);
+  }, [matches]);
 
   // Countdown from nextDeadline
   const [countdown, setCountdown] = useState('');
@@ -1277,33 +1318,104 @@ function HomePage({ t, user, matches, leaderboard, onGoAuth, onTabChange }) {
         </>
       )}
 
-      {/* MY RANK */}
+      {/* TU POSICIÓN */}
       {myRow && (
         <>
-          <SectionTitle right={<span onClick={()=>onTabChange('ranking')} style={{cursor:'pointer',color:'var(--gold)'}}>Ver podio →</span>}>
+          <SectionTitle right={
+            <span onClick={()=>onTabChange('ranking')}
+              style={{cursor:'pointer',color:'var(--gold)'}}>Ver podio →</span>
+          }>
             Tu posición
           </SectionTitle>
           <div style={{padding:'0 16px'}}>
-            <div className="card" style={{display:'flex',alignItems:'center',gap:14}}>
-              <div style={{
-                width:52, height:52, borderRadius:14,
-                background:'linear-gradient(135deg,rgba(245,183,49,.2),rgba(255,107,138,.2))',
-                border:'1.5px solid var(--gold)',
-                display:'flex',alignItems:'center',justifyContent:'center',
-                fontFamily:'Archivo Black,sans-serif',fontSize:22,color:'var(--gold)'
-              }}>{myRow.rank}º</div>
-              <div style={{flex:1}}>
-                <div style={{fontFamily:'JetBrains Mono,monospace',fontSize:24,fontWeight:700,lineHeight:1}}>
-                  {myRow.total_pts}
-                  <span style={{fontSize:12,color:'var(--mut)',marginLeft:6,fontWeight:500}}>pts</span>
-                </div>
-                <div style={{display:'flex',gap:12,marginTop:6,fontSize:11,color:'var(--mut)'}}>
-                  <span>🎯 {myRow.pts_exact} exactos</span>
-                  <span>✅ {myRow.pts_result} resultados</span>
-                  <span>⚽ {myRow.pts_goals} goles</span>
+            <div className="card" style={{gap:0}}>
+              {/* Top row: rank badge + pts + gap */}
+              <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:14}}>
+                <div style={{
+                  width:58, height:58, borderRadius:16, flexShrink:0,
+                  background:'linear-gradient(135deg,rgba(245,183,49,.25),rgba(255,107,138,.15))',
+                  border:'1.5px solid var(--gold)',
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  fontFamily:"'Archivo Black',sans-serif",fontSize:24,color:'var(--gold)',
+                }}>{myRow.rank}º</div>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:'JetBrains Mono,monospace',fontSize:26,fontWeight:700,lineHeight:1,color:'var(--txt)'}}>
+                    {myRow.total_pts}
+                    <span style={{fontSize:12,color:'var(--mut)',marginLeft:5,fontWeight:500}}>pts</span>
+                  </div>
+                  {gapToLeader !== null && (
+                    <div style={{fontSize:11,color:'var(--coral)',marginTop:4,fontWeight:700}}>
+                      −{gapToLeader} al líder
+                    </div>
+                  )}
+                  {gapToLeader === null && (
+                    <div style={{fontSize:11,color:'var(--gold)',marginTop:4,fontWeight:700}}>
+                      Líder del torneo
+                    </div>
+                  )}
                 </div>
               </div>
+              {/* Stats row */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+                {[
+                  {val: myRow.pts_exact,  lbl: t.exact_label ||'Exactos',   c:'var(--gold)'},
+                  {val: myRow.pts_result, lbl: t.result_label||'Resultados', c:'var(--green)'},
+                  {val: streak||0,        lbl: t.streak_label||'Racha',      c:'var(--coral)',
+                   icon: streak >= 3 ? '🔥' : null},
+                ].map((s,i) => (
+                  <div key={i} style={{
+                    background:'var(--surface2)', borderRadius:12, padding:'10px 8px',
+                    textAlign:'center', border:'1px solid var(--line)',
+                  }}>
+                    <div style={{fontFamily:'JetBrains Mono,monospace',fontSize:20,fontWeight:700,color:s.c,lineHeight:1}}>
+                      {s.icon}{s.val}
+                    </div>
+                    <div style={{fontSize:9.5,color:'var(--mut)',fontWeight:700,
+                      textTransform:'uppercase',letterSpacing:'.06em',marginTop:4}}>
+                      {s.lbl}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+          </div>
+        </>
+      )}
+
+      {/* PRÓXIMOS PARTIDOS */}
+      {upcomingMatches.length > 0 && (
+        <>
+          <SectionTitle right={
+            <span onClick={()=>onTabChange('bracket')}
+              style={{cursor:'pointer',color:'var(--sky)'}}>Ver cuadro →</span>
+          }>
+            Próximos partidos
+          </SectionTitle>
+          <div style={{padding:'0 16px',display:'flex',flexDirection:'column',gap:8}}>
+            {upcomingMatches.map(m => {
+              const dt = new Date(m.match_date);
+              const isToday = dt.toDateString() === new Date().toDateString();
+              const timeStr = dt.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+              const dateStr = isToday ? `Hoy ${timeStr}`
+                : dt.toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'}) + ` · ${timeStr}`;
+              return (
+                <div key={m.id} style={{
+                  background:'var(--surface)', border:'1px solid var(--line)',
+                  borderRadius:14, padding:'10px 14px',
+                  display:'flex', alignItems:'center', gap:10,
+                }}>
+                  <FlagChip team={m.home_team} size={28}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:13,
+                      whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                      {m.home_team} <span style={{color:'var(--mut)',fontWeight:400}}>vs</span> {m.away_team}
+                    </div>
+                    <div style={{fontSize:10,color:'var(--mut)',marginTop:2}}>{dateStr}</div>
+                  </div>
+                  <FlagChip team={m.away_team} size={28}/>
+                </div>
+              );
+            })}
           </div>
         </>
       )}
@@ -3234,6 +3346,7 @@ function App() {
 
       {/* PAGES */}
       {tab==='home'    && <HomePage    t={t} user={user} matches={matches} leaderboard={leaderboard}
+                            predictions={predictions}
                             onGoAuth={()=>setTab('auth')} onTabChange={setTab}/>}
       {tab==='auth'    && <AuthPage    t={t} lang={lang} setLang={setLang}
                             onVerifying={email=>setVerifyEmail(email)}/>}
