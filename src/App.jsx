@@ -1225,12 +1225,11 @@ function HomePage({ t, user, matches, predictions, leaderboard, onGoAuth, onTabC
     [predictions, matches, user]
   );
 
-  // Upcoming matches (next 5 not yet played)
+  // Upcoming matches — next 4 not yet finished, sorted by match_number (official order)
   const upcomingMatches = useMemo(() => {
-    const now = Date.now();
     return matches
-      .filter(m => m.status === 'scheduled' && m.match_date && new Date(m.match_date) > now && m.home_team && m.away_team)
-      .sort((a, b) => new Date(a.match_date) - new Date(b.match_date))
+      .filter(m => m.status !== 'finished' && m.match_number)
+      .sort((a, b) => a.match_number - b.match_number)
       .slice(0, 4);
   }, [matches]);
 
