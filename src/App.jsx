@@ -2200,42 +2200,59 @@ function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, match
 
       {filterLoading && <Spinner/>}
 
-      {/* PODIUM */}
-      {!filterLoading && top3.length >= 3 && (
-        <div style={{padding:'20px 0 0'}}>
-          <div className="podium">
-            {podiumOrder.map((row, i) => {
-              const origRank = top3.indexOf(row) + 1;
-              const clr  = podiumColors[origRank-1];
-              const h    = podiumHeights[i];
-              const isMe = user?.id === row.user_id;
-              return (
-                <div key={row.user_id} className="podium-item" style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
-                  {origRank === 1 && (
-                    <div className="podium-crown"><CrownSVG color={clr}/></div>
-                  )}
-                  <Avatar src={row.avatar_url} name={row.display_name}
-                    size={origRank===1 ? 58 : 48} userId={row.user_id}/>
-                  {isMe && <div className="podium-me-pin">{t.lb_me_pin||'TÚ'}</div>}
-                  <div className="podium-name">{row.display_name?.split(' ')[0]}</div>
-                  <div className="podium-pts" style={{color:clr}}>
-                    {row.total_pts}<span style={{fontSize:9,color:'var(--mut)',marginLeft:2}}>pts</span>
+      {/* PODIUM — works with 1, 2 or 3 players */}
+      {!filterLoading && top3.length >= 1 && (() => {
+        // Layout: with 3 → [2nd,1st,3rd]; with 2 → [2nd,1st]; with 1 → [1st]
+        const order = top3.length >= 3
+          ? [top3[1], top3[0], top3[2]]
+          : top3.length === 2
+          ? [top3[1], top3[0]]
+          : [top3[0]];
+        // Heights per display position matching layout
+        const heights = top3.length >= 3 ? [80,110,66]
+          : top3.length === 2         ? [80,110]
+          : [110];
+        return (
+          <div style={{padding:'20px 0 0'}}>
+            <div className="podium" style={{
+              gridTemplateColumns: top3.length === 1 ? '1fr'
+                : top3.length === 2 ? '1fr 1.15fr'
+                : '1fr 1.15fr 1fr',
+            }}>
+              {order.map((row, i) => {
+                const origRank = top3.indexOf(row) + 1;
+                const clr  = podiumColors[origRank-1];
+                const h    = heights[i];
+                const isMe = user?.id === row.user_id;
+                return (
+                  <div key={row.user_id} className="podium-item"
+                    style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
+                    {origRank === 1 && (
+                      <div className="podium-crown"><CrownSVG color={clr}/></div>
+                    )}
+                    <Avatar src={row.avatar_url} name={row.display_name}
+                      size={origRank===1 ? 58 : 48} userId={row.user_id}/>
+                    {isMe && <div className="podium-me-pin">{t.lb_me_pin||'TÚ'}</div>}
+                    <div className="podium-name">{row.display_name?.split(' ')[0]}</div>
+                    <div className="podium-pts" style={{color:clr}}>
+                      {row.total_pts}<span style={{fontSize:9,color:'var(--mut)',marginLeft:2}}>pts</span>
+                    </div>
+                    <div className="podium-bar" style={{
+                      height:h,
+                      background:`linear-gradient(180deg,${clr}aa 0%,${clr}22 100%)`,
+                      border:`1px solid ${clr}66`, borderBottom:'none',
+                    }}>
+                      <span className="podium-bar-num" style={{color:clr}}>{origRank}</span>
+                    </div>
                   </div>
-                  <div className="podium-bar" style={{
-                    height:h,
-                    background:`linear-gradient(180deg,${clr}aa 0%,${clr}22 100%)`,
-                    border:`1px solid ${clr}66`, borderBottom:'none',
-                  }}>
-                    <span className="podium-bar-num" style={{color:clr}}>{origRank}</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
-      {/* LEGEND + REST */}
+      {/* LEGEND + REST (rank 4+) */}
       {!filterLoading && rest.length > 0 && (
         <>
           <SectionTitle>Resto</SectionTitle>
@@ -2247,27 +2264,6 @@ function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, match
           <div style={{padding:'0 16px'}}>
             {rest.map((row,i) => {
               const rank = i+4;
-              const isMe = user?.id === row.user_id;
-              return (
-                <LbRow key={row.user_id} t={t} row={row} rank={rank} isMe={isMe}
-                  id={isMe ? 'lb-me-row' : undefined}/>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {/* FLAT LIST when <3 players */}
-      {!filterLoading && top3.length < 3 && top3.length > 0 && (
-        <>
-          <div className="lb-legend" style={{marginTop:8}}>
-            <span><span className="dot gold"/>{ t.lb_legend_exact ||'Exacto'}</span>
-            <span><span className="dot green"/>{t.lb_legend_result||'Resultado'}</span>
-            <span><span className="dot sky"/>  {t.lb_legend_goals ||'Goles'}</span>
-          </div>
-          <div style={{padding:'0 16px'}}>
-            {leaderboard.map((row,i) => {
-              const rank = i+1;
               const isMe = user?.id === row.user_id;
               return (
                 <LbRow key={row.user_id} t={t} row={row} rank={rank} isMe={isMe}
