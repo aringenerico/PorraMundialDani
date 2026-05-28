@@ -3108,17 +3108,19 @@ function AdminPage({ t, matches, onMatchUpdated }) {
   const addLog = msg => setSyncLog(l => [...l, msg]);
 
   const handleApiSync = async () => {
-    const fdKey = import.meta.env.VITE_FD_KEY;
-    if (!fdKey) { setSyncLog(['❌ Falta VITE_FD_KEY en el .env']); return; }
     setSyncing(true);
     setSyncLog(['Consultando football-data.org…']);
     try {
-      const res = await fetch(
-        'https://api.football-data.org/v4/competitions/WC/matches?season=2026',
-        { headers: { 'X-Auth-Token': fdKey } }
-      );
+      // En local (dev) llama directo con la clave; en producción usa el proxy serverless
+      const isDev = import.meta.env.DEV;
+      const fdKey = import.meta.env.VITE_FD_KEY;
+      const fetchUrl = isDev
+        ? 'https://api.football-data.org/v4/competitions/WC/matches?season=2026'
+        : '/api/fd-proxy';
+      const fetchOpts = isDev && fdKey ? { headers: { 'X-Auth-Token': fdKey } } : {};
+      const res = await fetch(fetchUrl, fetchOpts);
       const body = await res.json();
-      if (!res.ok) { addLog(`❌ API error: ${body?.message || res.status}`); setSyncing(false); return; }
+      if (!res.ok) { addLog(`❌ API error: ${body?.error || body?.message || res.status}`); setSyncing(false); return; }
 
       const finished = (body.matches || []).filter(m => m.status === 'FINISHED');
       addLog(`${finished.length} partidos terminados en la API`);
