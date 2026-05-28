@@ -1567,32 +1567,20 @@ function CommunityStats({ matchId, homeTeam, awayTeam }) {
 
   useEffect(() => {
     if (!matchId) return;
+    setStats(null);
+    // Usa RPC con SECURITY DEFINER → evita RLS, devuelve solo datos agregados
+    // Ejecutar supabase/community-stats.sql en el Dashboard para crear la función
     supabase
-      .from('predictions')
-      .select('home_goals, away_goals')
-      .eq('match_id', matchId)
-      .then(({ data }) => {
-        if (!data || data.length < 2) return;
-        const valid = data.filter(p => p.home_goals !== null && p.away_goals !== null);
-        if (valid.length < 2) return;
-        const total = valid.length;
-        let hw = 0, dr = 0, aw = 0;
-        const scores = {};
-        valid.forEach(({ home_goals: h, away_goals: a }) => {
-          if (h > a) hw++;
-          else if (h < a) aw++;
-          else dr++;
-          const k = `${h}–${a}`;
-          scores[k] = (scores[k] || 0) + 1;
-        });
-        const top = Object.entries(scores).sort((x, y) => y[1] - x[1])[0];
+      .rpc('match_community_stats', { p_match_id: matchId })
+      .then(({ data, error }) => {
+        if (error || !data) return;
         setStats({
-          total,
-          hw: Math.round(hw / total * 100),
-          dr: Math.round(dr / total * 100),
-          aw: Math.round(aw / total * 100),
-          topScore: top?.[0] ?? null,
-          topCount: top?.[1] ?? 0,
+          total:    data.total,
+          hw:       data.hw,
+          dr:       data.dr,
+          aw:       data.aw,
+          topScore: data.top_score ?? null,
+          topCount: data.top_count ?? 0,
         });
       });
   }, [matchId]);
