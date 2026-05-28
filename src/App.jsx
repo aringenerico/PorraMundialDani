@@ -3073,12 +3073,92 @@ function ProfilePage({ t, user, leaderboard, matches, predictions, onGoAuth, sig
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: ADMIN
 // ─────────────────────────────────────────────────────────────────────────────
+// ─── FOOTBALL-DATA.ORG HELPERS ───────────────────────────────────────────────
+const FD_TEAM_MAP = {
+  'Korea Republic':                  'South Korea',
+  "Côte d'Ivoire":                   'Ivory Coast',
+  'IR Iran':                         'Iran',
+  'Congo DR':                        'DR Congo',
+  'Democratic Republic of Congo':    'DR Congo',
+  'Curaçao':                         'Curaçao',
+  'Bosnia-Herzegovina':              'Bosnia and Herzegovina',
+  'United States':                   'USA',
+  'Curacao':                         'Curaçao',
+};
+const FD_STAGE_MAP = {
+  GROUP_STAGE:    'group',
+  LAST_32:        'r32',
+  LAST_16:        'r16',
+  QUARTER_FINALS: 'qf',
+  SEMI_FINALS:    'sf',
+  THIRD_PLACE:    '3rd',
+  FINAL:          'final',
+};
+const fdNorm = n => FD_TEAM_MAP[n] || n;
+
 function AdminPage({ t, matches, onMatchUpdated }) {
   const [results, setResults]       = useState({});
   const [saved, setSaved]           = useState({});
   const [phase, setPhase]           = useState('all');
   const [filling, setFilling]       = useState(false);
   const [fillStatus, setFillStatus] = useState('');
+  const [syncing, setSyncing]       = useState(false);
+  const [syncLog, setSyncLog]       = useState([]);
+
+  const addLog = msg => setSyncLog(l => [...l, msg]);
+
+  const handleApiSync = async () => {
+    const fdKey = import.meta.env.VITE_FD_KEY;
+    if (!fdKey) { setSyncLog(['❌ Falta VITE_FD_KEY en el .env']); return; }
+    setSyncing(true);
+    setSyncLog(['Consultando football-data.org…']);
+    try {
+      const res = await fetch(
+        'https://api.football-data.org/v4/competitions/WC/matches?season=2026',
+        { headers: { 'X-Auth-Token': fdKey } }
+      );
+      const body = await res.json();
+      if (!res.ok) { addLog(`❌ API error: ${body?.message || res.status}`); setSyncing(false); return; }
+
+      const finished = (body.matches || []).filter(m => m.status === 'FINISHED');
+      addLog(`${finished.length} partidos terminados en la API`);
+
+      let updated = 0, skipped = 0;
+      for (const fdm of finished) {
+        const fdHome  = fdNorm(fdm.homeTeam?.name || '');
+        const fdAway  = fdNorm(fdm.awayTeam?.name || '');
+        const fdPhase = FD_STAGE_MAP[fdm.stage] || 'group';
+        const hg = fdm.score?.fullTime?.home ?? 0;
+        const ag = fdm.score?.fullTime?.away ?? 0;
+
+        const match = matches.find(m =>
+          (FD_STAGE_MAP[fdm.stage] ? m.phase === fdPhase : true) &&
+          ((m.home_team === fdHome && m.away_team === fdAway) ||
+           (m.home_team === fdAway && m.away_team === fdHome))
+        );
+
+        if (!match) { skipped++; continue; }
+        if (match.status === 'finished') { skipped++; continue; }
+
+        const swapped = match.home_team === fdAway;
+        const { error } = await supabase.rpc('admin_save_result', {
+          p_match_id: match.id,
+          p_home: swapped ? ag : hg,
+          p_away: swapped ? hg : ag,
+        });
+        if (error) addLog(`❌ P${match.match_number}: ${error.message}`);
+        else {
+          updated++;
+          addLog(`✅ P${match.match_number} ${match.home_team} ${swapped?ag:hg}–${swapped?hg:ag} ${match.away_team}`);
+        }
+      }
+      addLog(`Listo: ${updated} actualizados · ${skipped} omitidos`);
+      if (updated > 0) onMatchUpdated();
+    } catch(e) {
+      addLog(`❌ Error: ${e.message}`);
+    }
+    setSyncing(false);
+  };
 
   const fillBracket = async () => {
     setFilling(true); setFillStatus('');
@@ -3116,6 +3196,35 @@ function AdminPage({ t, matches, onMatchUpdated }) {
       <div style={{padding:'14px 16px 0'}}>
         <div style={{fontFamily:'Archivo Black,sans-serif',fontSize:20,textTransform:'uppercase',marginBottom:12}}>
           ⚙️ {t.admin_panel}
+        </div>
+
+        {/* API SYNC */}
+        <div className="card" style={{marginBottom:12,padding:'12px 16px'}}>
+          <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:600,fontSize:14}}>Sincronizar resultados</div>
+              <div className="txt-mut" style={{fontSize:12,marginTop:2}}>
+                Importa resultados automáticamente desde football-data.org
+              </div>
+            </div>
+            <button className="btn-acc btn-sm" onClick={handleApiSync} disabled={syncing}>
+              {syncing ? '⏳ Sincronizando…' : '🔄 Sync API'}
+            </button>
+          </div>
+          {syncLog.length > 0 && (
+            <div style={{
+              marginTop:10, background:'var(--bg-deep)', borderRadius:8,
+              padding:'8px 12px', maxHeight:180, overflowY:'auto',
+              fontFamily:'JetBrains Mono,monospace', fontSize:11,
+              display:'flex', flexDirection:'column', gap:2,
+            }}>
+              {syncLog.map((l,i) => (
+                <div key={i} style={{color: l.startsWith('❌') ? 'var(--coral)' : l.startsWith('✅') ? 'var(--green)' : 'var(--txt-mid)'}}>
+                  {l}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Bracket fill */}
