@@ -176,6 +176,15 @@ const LANGS = {
     result_label:'Resultados',
     streak_label:'Racha',
     preds_label:'Pronósticos',
+    detail_back:'← Pronósticos',
+    detail_your_pick:'Tu pronóstico',
+    detail_save_pick:'Guardar pronóstico',
+    detail_saved:'✅ Guardado',
+    detail_login_title:'Inicia sesión para pronosticar',
+    hero_kicker:'Cierra Jornada {md}',
+    hero_review:'Ir →',
+    unsaved_changes_one:'1 cambio sin guardar',
+    unsaved_changes_multi:'{n} cambios sin guardar',
   },
   en: {
     nav_home:'Home', nav_predict:'Predictions', nav_results:'Results',
@@ -224,6 +233,15 @@ const LANGS = {
     result_label:'Results',
     streak_label:'Streak',
     preds_label:'Predictions',
+    detail_back:'← Predictions',
+    detail_your_pick:'Your pick',
+    detail_save_pick:'Save pick',
+    detail_saved:'✅ Saved',
+    detail_login_title:'Sign in to predict',
+    hero_kicker:'Closes Matchday {md}',
+    hero_review:'Go →',
+    unsaved_changes_one:'1 unsaved change',
+    unsaved_changes_multi:'{n} unsaved changes',
   },
   pt: {
     nav_home:'Início', nav_predict:'Palpites', nav_results:'Resultados',
@@ -272,6 +290,15 @@ const LANGS = {
     result_label:'Resultados',
     streak_label:'Sequência',
     preds_label:'Palpites',
+    detail_back:'← Palpites',
+    detail_your_pick:'Seu palpite',
+    detail_save_pick:'Salvar palpite',
+    detail_saved:'✅ Salvo',
+    detail_login_title:'Entre para palpitar',
+    hero_kicker:'Fecha Rodada {md}',
+    hero_review:'Ir →',
+    unsaved_changes_one:'1 alteração não salva',
+    unsaved_changes_multi:'{n} alterações não salvas',
   },
 };
 
@@ -645,6 +672,85 @@ const CSS = `
   @media(max-width:480px){
     .groups-grid { grid-template-columns:1fr; }
   }
+
+  /* ── PREDICTIONS HERO ── */
+  .pred-hero { margin:14px 16px 0; border-radius:16px;
+    background:linear-gradient(135deg,var(--surface2),var(--surface));
+    border:1px solid rgba(255,107,138,.3); padding:16px;
+    position:relative; overflow:hidden; }
+  .pred-hero.urgent { border-color:rgba(255,107,138,.6); }
+  .pred-hero-glow { position:absolute; top:-40px; right:-40px;
+    width:130px; height:130px; border-radius:50%;
+    background:var(--coral-glow); filter:blur(30px); pointer-events:none; }
+  .pred-hero-kicker { display:flex; align-items:center; gap:6px;
+    font-size:10px; font-weight:800; color:var(--coral);
+    letter-spacing:.1em; text-transform:uppercase; margin-bottom:8px; }
+  .pred-hero-countdown { font-family:'JetBrains Mono',monospace;
+    font-size:32px; font-weight:700; color:var(--gold); line-height:1;
+    text-shadow:0 0 24px rgba(245,183,49,.4); }
+  .pred-hero.urgent .pred-hero-countdown { color:var(--coral);
+    text-shadow:0 0 24px rgba(255,107,138,.4); }
+  .pred-hero-row { display:flex; align-items:center; gap:12px; }
+
+  /* ── MATCHDAY HEADER v2 ── */
+  .md-hdr { padding:16px 16px 8px; }
+  .md-hdr-top { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .md-hdr-title { font-family:'Archivo Black',sans-serif; font-size:15px;
+    color:var(--gold); flex:1; }
+  .md-progress-bar { height:3px; background:var(--surface2);
+    border-radius:99px; overflow:hidden; margin-bottom:4px; }
+  .md-progress-fill { height:100%; background:var(--green);
+    border-radius:99px; transition:width .3s ease; }
+  .md-deadline-text { font-size:11px; color:var(--mut); }
+  .md-deadline-text.urgent { color:var(--coral); }
+  .md-deadline-text.open { color:var(--green); }
+
+  /* ── MATCH CARD state overrides ── */
+  .match-card { cursor:pointer; transition:transform .1s ease, opacity .1s ease; }
+  .match-card:active { transform:scale(0.99); opacity:.9; }
+  .match-card.state-live  { border-left:3px solid var(--coral) !important; }
+  .match-card.state-exact { border-left:3px solid var(--gold)  !important; }
+  .match-card.state-next-up { border-left:3px solid var(--sky) !important; }
+
+  /* ── STICKY SAVE BAR ── */
+  .sticky-save { position:fixed; bottom:78px; left:0; right:0; z-index:90;
+    display:flex; justify-content:center; padding:0 16px; pointer-events:none; }
+  .sticky-save-inner { background:var(--surface2); border:1px solid var(--gold);
+    border-radius:999px; padding:10px 20px; display:flex; align-items:center;
+    gap:10px; pointer-events:all;
+    box-shadow:0 4px 24px rgba(0,0,0,.6),0 0 0 1px rgba(245,183,49,.15); }
+  .sticky-save-count { font-size:12px; color:var(--mut); }
+
+  /* ── MATCH DETAIL PAGE ── */
+  .detail-back-bar { position:sticky; top:56px; z-index:80;
+    background:var(--bg-deep); border-bottom:1px solid var(--line);
+    padding:8px 16px; display:flex; align-items:center; gap:8px; }
+  .detail-back-btn { background:none; border:none; color:var(--sky);
+    font-size:14px; font-weight:600; cursor:pointer; padding:4px 0;
+    display:flex; align-items:center; gap:6px; }
+  .detail-hero { padding:32px 20px 24px; position:relative; overflow:hidden;
+    display:flex; flex-direction:column; align-items:center; }
+  .detail-hero-team { font-size:18px; font-weight:800; text-align:center; line-height:1.2; }
+  .detail-hero-score { font-family:'JetBrains Mono',monospace;
+    font-size:42px; font-weight:700; color:var(--gold); line-height:1;
+    text-shadow:0 0 32px rgba(245,183,49,.5); }
+  .detail-hero-vs { font-size:18px; color:rgba(255,255,255,.35); font-weight:600; }
+  .score-input-lg { width:56px; height:60px; background:var(--surface2);
+    border:1.5px solid rgba(245,183,49,.4); border-radius:12px;
+    color:var(--txt); font-size:28px; font-weight:700;
+    font-family:'JetBrains Mono',monospace; text-align:center;
+    outline:none; transition:border-color var(--tr); }
+  .score-input-lg:focus { border-color:var(--gold); }
+  .score-input-lg:disabled { border-color:var(--line); opacity:.6; }
+  .quick-picks { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+  .quick-pick-btn { background:var(--surface2); border:1px solid var(--line);
+    border-radius:8px; color:var(--txt-mid); font-family:'JetBrains Mono',monospace;
+    font-size:12px; font-weight:600; padding:6px 10px; cursor:pointer;
+    transition:all var(--tr); }
+  .quick-pick-btn:hover { border-color:var(--gold); color:var(--gold); }
+  .quick-pick-btn.selected { background:var(--gold-glow); border-color:var(--gold); color:var(--gold); }
+  .login-banner { margin:24px 16px; padding:24px 20px; background:var(--surface);
+    border:1px dashed var(--line); border-radius:16px; text-align:center; }
 `;
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -654,6 +760,7 @@ const fmtDate = d => d
 const isBeforeDeadline = dl => new Date() < new Date(dl);
 const initials = name => (name||'?').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase();
 const fmtEur = n => `${n.toLocaleString('es-ES')}€`;
+const fmt = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
 
 // ─── COUNTDOWN HELPERS ───────────────────────────────────────────────────────
 /** Devuelve la jornada con deadline más cercano aún no vencido */
@@ -1146,29 +1253,181 @@ function HomePage({ t, user, matches, leaderboard, onGoAuth, onTabChange }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ATOM: NEXT DEADLINE HERO (PR-A §2)
+// ─────────────────────────────────────────────────────────────────────────────
+function NextDeadlineHero({ t, matches, onScrollToMatchday }) {
+  const next = useMemo(() => getNextOpenMatchday(matches), [matches]);
+  const cd   = useCountdown(next?.deadline);
+  if (!next || !cd) return null;
+  const cdStr  = cd.d > 0 ? `${cd.d}d ${cd.h}h ${cd.m}m` : `${cd.h}h ${cd.m}m`;
+  const kicker = fmt(t.hero_kicker || 'Cierra Jornada {md}', { md: next.matchday });
+  return (
+    <div className={`pred-hero${cd.urgent ? ' urgent' : ''}`}>
+      <div className="pred-hero-glow"/>
+      <div className="pred-hero-kicker">
+        <Icon name="bolt" size={12} color="var(--coral)" stroke={2.2}/>
+        {kicker}
+      </div>
+      <div className="pred-hero-row">
+        <div className="pred-hero-countdown">{cdStr}</div>
+        <div style={{flex:1}}/>
+        <button className="btn-acc btn-sm"
+          onClick={() => onScrollToMatchday(next.matchday)}>
+          {t.hero_review || 'Ir →'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: MATCHDAY HEADER v2 — progress bar + smart deadline (PR-A §3)
+// ─────────────────────────────────────────────────────────────────────────────
+function MatchdayHeader({ t, matchday, deadline, total, filled }) {
+  const cd   = useCountdown(deadline);
+  const open = isBeforeDeadline(deadline);
+  let deadlineText = '', deadlineClass = '';
+  if (!open) {
+    deadlineText  = t.deadline_passed;
+  } else if (cd) {
+    deadlineText  = cd.d > 0
+      ? `${t.open_until} ${cd.d}d ${cd.h}h`
+      : `${t.open_until} ${cd.h}h ${cd.m}m`;
+    deadlineClass = cd.urgent ? 'urgent' : 'open';
+  }
+  const pct = total > 0 ? filled / total : 0;
+  return (
+    <div className="md-hdr">
+      <div className="md-hdr-top">
+        <span className="md-hdr-title">{t.matchday} {matchday}</span>
+        <span className={`md-deadline-text ${deadlineClass}`}>{deadlineText}</span>
+      </div>
+      <div className="md-progress-bar">
+        <div className="md-progress-fill" style={{width:`${pct*100}%`}}/>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: STICKY SAVE BAR (PR-A §6)
+// ─────────────────────────────────────────────────────────────────────────────
+function StickySaveBar({ t, count, saving, onSave }) {
+  if (count === 0) return null;
+  const countStr = count === 1
+    ? (t.unsaved_changes_one || '1 cambio sin guardar')
+    : fmt(t.unsaved_changes_multi || '{n} cambios sin guardar', { n: count });
+  return (
+    <div className="sticky-save">
+      <div className="sticky-save-inner">
+        <span className="sticky-save-count">{countStr}</span>
+        <button className="btn-acc btn-sm" disabled={saving} onClick={onSave}>
+          {saving ? t.saving : `💾 ${t.save_btn}`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: MATCH CARD (PR-A §8 — extracted component)
+// ─────────────────────────────────────────────────────────────────────────────
+function MatchCard({ t, match: m, pred, open, view, pts, stateClass, onChangePred, onOpenDetail }) {
+  const ptsClass   = pts === 3 ? 'exact' : pts >= 1 ? 'result' : pts > 0 ? 'goals' : 'zero';
+  const noState    = !stateClass;
+  const hasBorder  = noState && m.status === 'finished';
+  return (
+    <div
+      className={`match-card ${hasBorder ? 'has-result' : ''} ${!open ? 'deadline-passed' : ''} ${stateClass}`}
+      style={{margin:'0 16px 10px'}}
+      onClick={e => { if (e.target.tagName !== 'INPUT') onOpenDetail?.(); }}
+    >
+      <div className="match-teams">
+        <div style={{display:'flex',alignItems:'center',gap:8,flex:1}}>
+          <FlagChip team={m.home_team} size={28}/>
+          <div>
+            <div style={{fontWeight:700,fontSize:14}}>{m.home_team||'?'}</div>
+            <div style={{fontSize:10,color:'var(--mut)',fontFamily:'JetBrains Mono,monospace'}}>
+              {C(m.home_team).code}
+            </div>
+          </div>
+        </div>
+        {m.status==='finished'
+          ? <div className="score-result">{m.home_goals}–{m.away_goals}</div>
+          : <div className="score-vs">{t.match_vs}</div>}
+        <div style={{display:'flex',alignItems:'center',gap:8,flex:1,justifyContent:'flex-end'}}>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontWeight:700,fontSize:14}}>{m.away_team||'?'}</div>
+            <div style={{fontSize:10,color:'var(--mut)',fontFamily:'JetBrains Mono,monospace'}}>
+              {C(m.away_team).code}
+            </div>
+          </div>
+          <FlagChip team={m.away_team} size={28}/>
+        </div>
+      </div>
+      {view==='predict' && (
+        <div className="pred-row" onClick={e => e.stopPropagation()}>
+          <input className="score-input" type="text" inputMode="numeric"
+            value={pred.h} disabled={!open}
+            onChange={e => onChangePred('h', e.target.value)} placeholder="0"/>
+          <span className="pred-dash">–</span>
+          <input className="score-input" type="text" inputMode="numeric"
+            value={pred.a} disabled={!open}
+            onChange={e => onChangePred('a', e.target.value)} placeholder="0"/>
+          {pts !== null && <span className={`pred-pts ${ptsClass}`}>+{pts} {t.pts}</span>}
+        </div>
+      )}
+      <div className="match-meta">
+        <span>{fmtDate(m.match_date)}</span>
+        {m.stadium && <span>{m.stadium}</span>}
+        <span className="txt-mut">
+          {PHASE_LABELS[m.phase]}{m.group_name ? ` · Grupo ${m.group_name}` : ''}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PAGE: PREDICTIONS (+ Results toggle)
 // ─────────────────────────────────────────────────────────────────────────────
-function PredictionsPage({ t, user, matches, predictions, onSave, onGoAuth }) {
+function PredictionsPage({ t, user, matches, predictions, onSave, onGoAuth, onOpenDetail }) {
+  // ── All hooks BEFORE any conditional return ──────────────────────────────
   const [localPreds, setLocalPreds] = useState({});
-  const [saving, setSaving]         = useState(null);
-  const [savedMd, setSavedMd]       = useState(null);
-  const [phase, setPhase]           = useState('all');
-  const [view, setView]             = useState('predict'); // 'predict' | 'results'
+  const [dirtyIds,   setDirtyIds]   = useState(new Set());
+  const [saving,     setSaving]     = useState(false);
+  const [phase,      setPhase]      = useState('all');
+  const [view,       setView]       = useState('predict');
 
   useEffect(() => {
     const init = {};
-    predictions.forEach(p => { init[p.match_id] = {h:String(p.home_goals),a:String(p.away_goals)}; });
+    predictions.forEach(p => {
+      init[p.match_id] = { h: String(p.home_goals), a: String(p.away_goals) };
+    });
     setLocalPreds(init);
+    setDirtyIds(new Set());
   }, [predictions]);
 
+  const phasesInView = useMemo(() => [...new Set(matches.map(m => m.phase))], [matches]);
+  const nextOpenMd   = useMemo(() => getNextOpenMatchday(matches)?.matchday, [matches]);
+  const unsavedCount = useMemo(() => {
+    const now = Date.now();
+    return [...dirtyIds].filter(id => {
+      const m = matches.find(x => x.id === id);
+      return m && m.deadline && new Date(m.deadline).getTime() > now;
+    }).length;
+  }, [dirtyIds, matches]);
+
+  // ── Early return ─────────────────────────────────────────────────────────
   if (!user) return (
-    <div className="page" style={{padding:'40px 16px',textAlign:'center'}}>
-      <div style={{fontSize:40,marginBottom:12}}>🔐</div>
-      <p style={{marginBottom:16,color:'var(--mut)'}}>{t.login_required}</p>
+    <div className="page" style={{padding:'40px 16px', textAlign:'center'}}>
+      <div style={{fontSize:40, marginBottom:12}}>🔐</div>
+      <p style={{marginBottom:16, color:'var(--mut)'}}>{t.login_required}</p>
       <button className="btn-acc" onClick={onGoAuth}>{t.auth_login} / {t.auth_register}</button>
     </div>
   );
 
+  // ── Non-hook logic ────────────────────────────────────────────────────────
   const matchdayGroups = {};
   matches.forEach(m => {
     if (view === 'results' && m.status !== 'finished') return;
@@ -1179,131 +1438,300 @@ function PredictionsPage({ t, user, matches, predictions, onSave, onGoAuth }) {
 
   const setPred = (matchId, side, val) => {
     const n = val.replace(/\D/g,'').slice(0,2);
-    setLocalPreds(p => ({...p,[matchId]:{...p[matchId],[side]:n}}));
+    setLocalPreds(p => ({...p, [matchId]: {...p[matchId], [side]: n}}));
+    setDirtyIds(s => new Set([...s, matchId]));
   };
 
-  const handleSaveMatchday = async (matchday, mdMatches) => {
-    setSaving(matchday);
-    const rows = mdMatches
-      .filter(m => { const p = localPreds[m.id]; return p && p.h!=='' && p.a!==''; })
-      .map(m => ({
-        user_id:user.id, match_id:m.id,
-        home_goals:parseInt(localPreds[m.id].h),
-        away_goals:parseInt(localPreds[m.id].a),
-      }));
-    const { error } = await supabase.from('predictions').upsert(rows, {onConflict:'user_id,match_id'});
-    setSaving(null);
-    if (!error) { setSavedMd(matchday); onSave(); setTimeout(()=>setSavedMd(null),3000); }
+  const handleSaveAll = async () => {
+    setSaving(true);
+    const now = Date.now();
+    const rows = matches
+      .filter(m => dirtyIds.has(m.id) && m.deadline && new Date(m.deadline).getTime() > now)
+      .map(m => {
+        const p = localPreds[m.id];
+        if (!p || p.h === '' || p.a === '') return null;
+        return { user_id: user.id, match_id: m.id,
+                 home_goals: parseInt(p.h), away_goals: parseInt(p.a) };
+      })
+      .filter(Boolean);
+    if (rows.length) {
+      const { error } = await supabase.from('predictions').upsert(rows, {onConflict:'user_id,match_id'});
+      if (!error) { setDirtyIds(new Set()); onSave(); }
+    }
+    setSaving(false);
   };
 
-  const phasesInView = [...new Set(matches.map(m => m.phase))];
+  const scrollToMatchday = md => {
+    const el = document.getElementById(`matchday-${md}`);
+    if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+  };
 
   return (
     <div className="page">
-      {/* view toggle */}
+      {/* Hero countdown (predict view only) */}
+      {view === 'predict' && (
+        <NextDeadlineHero t={t} matches={matches} onScrollToMatchday={scrollToMatchday}/>
+      )}
+
+      {/* View toggle */}
       <div style={{padding:'14px 16px 0', display:'flex', gap:8, alignItems:'center'}}>
-        <div style={{display:'flex',background:'var(--surface)',borderRadius:999,padding:3,border:'1px solid var(--line)'}}>
-          {[{id:'predict',l:t.nav_predict},{id:'results',l:t.nav_results}].map(v=>(
-            <button key={v.id} onClick={()=>setView(v.id)} style={{
+        <div style={{display:'flex', background:'var(--surface)', borderRadius:999,
+                     padding:3, border:'1px solid var(--line)'}}>
+          {[{id:'predict', l:t.nav_predict}, {id:'results', l:t.nav_results}].map(v => (
+            <button key={v.id} onClick={() => setView(v.id)} style={{
               padding:'5px 14px', borderRadius:999, fontSize:12, fontWeight:700,
-              background:view===v.id?'var(--gold)':'transparent',
-              color:view===v.id?'var(--bg-deep)':'var(--mut)', border:'none', cursor:'pointer',
+              background: view===v.id ? 'var(--gold)' : 'transparent',
+              color: view===v.id ? 'var(--bg-deep)' : 'var(--mut)',
+              border:'none', cursor:'pointer',
             }}>{v.l}</button>
           ))}
         </div>
       </div>
 
-      {/* phase chips */}
+      {/* Phase chips */}
       <div style={{padding:'12px 0 0'}}>
         <div className="chips">
-          <button className={`chip ${phase==='all'?'on':''}`} onClick={()=>setPhase('all')}>
+          <button className={`chip ${phase==='all'?'on':''}`} onClick={() => setPhase('all')}>
             {t.all_phases}
           </button>
-          {PHASES.filter(p=>phasesInView.includes(p)).map(p=>(
-            <button key={p} className={`chip ${phase===p?'on':''}`} onClick={()=>setPhase(p)}>
+          {PHASES.filter(p => phasesInView.includes(p)).map(p => (
+            <button key={p} className={`chip ${phase===p?'on':''}`} onClick={() => setPhase(p)}>
               {PHASE_LABELS[p]}
             </button>
           ))}
         </div>
       </div>
 
-      <div style={{padding:'4px 16px 0'}}>
+      {/* Match list */}
+      <div style={{padding:'4px 0 0'}}>
         {Object.entries(matchdayGroups).map(([md, mdMatches]) => {
           const deadline = mdMatches[0]?.deadline;
-          const open = isBeforeDeadline(deadline);
+          const open     = isBeforeDeadline(deadline);
+          const filled   = mdMatches.filter(m => {
+            const p = localPreds[m.id];
+            return p && p.h !== '' && p.a !== '';
+          }).length;
           return (
-            <div key={md}>
-              <div className="matchday-hdr">
-                <span className="matchday-title">{t.matchday} {md}</span>
-                <span className={`deadline-badge ${open?'open':'closed'}`}>
-                  {open ? `${t.open_until}: ${fmtDate(deadline)}` : t.deadline_passed}
-                </span>
-              </div>
+            <div key={md} id={`matchday-${md}`}>
+              <MatchdayHeader t={t} matchday={md} deadline={deadline}
+                total={mdMatches.length} filled={filled}/>
               {mdMatches.map(m => {
-                const pred = localPreds[m.id] || {h:'',a:''};
-                const hasPred = pred.h!=='' && pred.a!=='';
-                const pts = m.status==='finished' && hasPred
-                  ? calcScore(parseInt(pred.h),parseInt(pred.a),m.home_goals,m.away_goals)
+                const pred   = localPreds[m.id] || {h:'', a:''};
+                const hasPred = pred.h !== '' && pred.a !== '';
+                const pts    = m.status === 'finished' && hasPred
+                  ? calcScore(parseInt(pred.h), parseInt(pred.a), m.home_goals, m.away_goals)
                   : null;
-                const ptsClass = pts===3?'exact':pts>=1?'result':pts>0?'goals':'zero';
+                const isLive   = m.status === 'live' || m.status === 'in_progress';
+                const isExact  = pts === 3;
+                const isNextUp = !isLive && m.status !== 'finished' && m.matchday === nextOpenMd;
+                const stateClass = isLive ? 'state-live' : isExact ? 'state-exact'
+                                 : isNextUp ? 'state-next-up' : '';
                 return (
-                  <div key={m.id} className={`match-card ${m.status==='finished'?'has-result':''} ${!open?'deadline-passed':''}`}>
-                    <div className="match-teams">
-                      <div style={{display:'flex',alignItems:'center',gap:8,flex:1}}>
-                        <FlagChip team={m.home_team} size={28}/>
-                        <div>
-                          <div style={{fontWeight:700,fontSize:14}}>{m.home_team||'?'}</div>
-                          <div style={{fontSize:10,color:'var(--mut)',fontFamily:'JetBrains Mono,monospace'}}>
-                            {C(m.home_team).code}
-                          </div>
-                        </div>
-                      </div>
-                      {m.status==='finished'
-                        ? <div className="score-result">{m.home_goals}–{m.away_goals}</div>
-                        : <div className="score-vs">{t.match_vs}</div>}
-                      <div style={{display:'flex',alignItems:'center',gap:8,flex:1,justifyContent:'flex-end'}}>
-                        <div style={{textAlign:'right'}}>
-                          <div style={{fontWeight:700,fontSize:14}}>{m.away_team||'?'}</div>
-                          <div style={{fontSize:10,color:'var(--mut)',fontFamily:'JetBrains Mono,monospace'}}>
-                            {C(m.away_team).code}
-                          </div>
-                        </div>
-                        <FlagChip team={m.away_team} size={28}/>
-                      </div>
-                    </div>
-                    {view==='predict' && (
-                      <div className="pred-row">
-                        <input className="score-input" type="text" inputMode="numeric"
-                          value={pred.h} disabled={!open}
-                          onChange={e=>setPred(m.id,'h',e.target.value)} placeholder="0"/>
-                        <span className="pred-dash">–</span>
-                        <input className="score-input" type="text" inputMode="numeric"
-                          value={pred.a} disabled={!open}
-                          onChange={e=>setPred(m.id,'a',e.target.value)} placeholder="0"/>
-                        {pts !== null && <span className={`pred-pts ${ptsClass}`}>+{pts} {t.pts}</span>}
-                      </div>
-                    )}
-                    <div className="match-meta">
-                      <span>📅 {fmtDate(m.match_date)}</span>
-                      <span>🏟️ {m.stadium}</span>
-                      <span className="txt-mut">
-                        {PHASE_LABELS[m.phase]}{m.group_name?` · Grupo ${m.group_name}`:''}
-                      </span>
-                    </div>
-                  </div>
+                  <MatchCard key={m.id}
+                    t={t} match={m} pred={pred} open={open} view={view}
+                    pts={pts} stateClass={stateClass}
+                    onChangePred={(side, val) => setPred(m.id, side, val)}
+                    onOpenDetail={() => onOpenDetail?.(m.id)}/>
                 );
               })}
-              {view==='predict' && open && (
-                <div className="save-matchday">
-                  <button className="btn-acc" disabled={saving===parseInt(md)}
-                    onClick={()=>handleSaveMatchday(parseInt(md),mdMatches)}>
-                    {saving===parseInt(md) ? t.saving : savedMd===parseInt(md) ? t.saved : `💾 ${t.save_btn} Jornada ${md}`}
-                  </button>
-                </div>
-              )}
             </div>
           );
         })}
+      </div>
+
+      {/* Sticky save bar */}
+      {view === 'predict' && (
+        <StickySaveBar t={t} count={unsavedCount} saving={saving} onSave={handleSaveAll}/>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE: MATCH DETAIL (PR-B)
+// ─────────────────────────────────────────────────────────────────────────────
+const QUICK_PICKS = [[0,0],[1,0],[0,1],[1,1],[2,0],[0,2],[2,1],[1,2],[3,0],[0,3],[3,1],[1,3]];
+
+function MatchDetailPage({ t, match: m, user, predictions, onBack, onSave }) {
+  const existing = predictions.find(p => p.match_id === m?.id);
+  const [localH, setLocalH] = useState('');
+  const [localA, setLocalA] = useState('');
+  const [saving,  setSaving] = useState(false);
+  const [saved,   setSaved]  = useState(false);
+
+  useEffect(() => {
+    if (existing) {
+      setLocalH(String(existing.home_goals));
+      setLocalA(String(existing.away_goals));
+    } else {
+      setLocalH(''); setLocalA('');
+    }
+  }, [existing]);
+
+  if (!m) return null;
+
+  const open = m.deadline ? isBeforeDeadline(m.deadline) : false;
+  const ch   = C(m.home_team);
+  const ca   = C(m.away_team);
+
+  const handleSave = async () => {
+    if (!user || localH === '' || localA === '') return;
+    setSaving(true);
+    const { error } = await supabase.from('predictions').upsert(
+      [{ user_id: user.id, match_id: m.id,
+         home_goals: parseInt(localH), away_goals: parseInt(localA) }],
+      { onConflict: 'user_id,match_id' }
+    );
+    setSaving(false);
+    if (!error) { setSaved(true); onSave(); setTimeout(() => setSaved(false), 3000); }
+  };
+
+  const isSelected = (h, a) => localH === String(h) && localA === String(a);
+
+  const pts = m.status === 'finished' && existing
+    ? calcScore(existing.home_goals, existing.away_goals, m.home_goals, m.away_goals)
+    : null;
+  const ptsClass = pts === 3 ? 'exact' : pts >= 1 ? 'result' : pts > 0 ? 'goals' : 'zero';
+
+  return (
+    <div style={{minHeight:'100vh', background:'var(--bg)', paddingBottom:32}}>
+      {/* Back bar */}
+      <div className="detail-back-bar">
+        <button className="detail-back-btn" onClick={onBack}>
+          ← {t.detail_back || 'Pronósticos'}
+        </button>
+        <span style={{marginLeft:'auto', fontSize:11, color:'var(--mut)'}}>
+          {PHASE_LABELS[m.phase]}{m.group_name ? ` · Grupo ${m.group_name}` : ''}
+        </span>
+      </div>
+
+      {/* Hero */}
+      <div className="detail-hero" style={{
+        background:`linear-gradient(135deg,${ch.c[0]}2a 0%,var(--bg) 45%,${ca.c[0]}2a 100%)`
+      }}>
+        {/* ambient glows */}
+        <div style={{position:'absolute',top:-60,left:-60,width:200,height:200,
+          borderRadius:'50%',background:`${ch.c[0]}18`,filter:'blur(60px)',pointerEvents:'none'}}/>
+        <div style={{position:'absolute',top:-60,right:-60,width:200,height:200,
+          borderRadius:'50%',background:`${ca.c[0]}18`,filter:'blur(60px)',pointerEvents:'none'}}/>
+        <div style={{position:'relative',display:'flex',alignItems:'center',
+                     gap:16,width:'100%',justifyContent:'center'}}>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10,flex:1}}>
+            <FlagChip team={m.home_team} size={52}/>
+            <div className="detail-hero-team">{m.home_team||'?'}</div>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+            {m.status === 'finished'
+              ? <div className="detail-hero-score">{m.home_goals}–{m.away_goals}</div>
+              : <div className="detail-hero-vs">vs</div>}
+            <div style={{fontSize:10,color:'var(--mut)',fontWeight:600,fontFamily:'JetBrains Mono',textAlign:'center'}}>
+              {fmtDate(m.match_date)}
+            </div>
+            {(m.status === 'live' || m.status === 'in_progress') && (
+              <span className="badge-live">EN VIVO</span>
+            )}
+          </div>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10,flex:1}}>
+            <FlagChip team={m.away_team} size={52}/>
+            <div className="detail-hero-team">{m.away_team||'?'}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Prediction card */}
+      <div style={{padding:'0 16px'}}>
+        {!user ? (
+          <div className="login-banner">
+            <div style={{fontSize:32,marginBottom:12}}>🔐</div>
+            <div style={{fontFamily:'Archivo Black',fontSize:18,marginBottom:8}}>
+              {t.detail_login_title || 'Inicia sesión para pronosticar'}
+            </div>
+            <p style={{color:'var(--mut)',fontSize:13,lineHeight:1.5}}>
+              Compite con tus amigos en la porra del Mundial.
+            </p>
+          </div>
+        ) : (
+          <div className="card">
+            <div style={{fontSize:11,fontWeight:700,color:'var(--mut)',
+                         letterSpacing:'.08em',textTransform:'uppercase',marginBottom:16}}>
+              {t.detail_your_pick || 'Tu pronóstico'}
+            </div>
+
+            {/* Large score inputs */}
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',
+                         gap:14,marginBottom:18}}>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
+                <FlagChip team={m.home_team} size={28}/>
+                <input className="score-input-lg" type="text" inputMode="numeric"
+                  value={localH} disabled={!open}
+                  onChange={e => setLocalH(e.target.value.replace(/\D/g,'').slice(0,2))}
+                  placeholder="0"/>
+              </div>
+              <div style={{fontSize:28,color:'var(--mut)',fontWeight:700,
+                           fontFamily:'JetBrains Mono',marginTop:36}}>–</div>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
+                <FlagChip team={m.away_team} size={28}/>
+                <input className="score-input-lg" type="text" inputMode="numeric"
+                  value={localA} disabled={!open}
+                  onChange={e => setLocalA(e.target.value.replace(/\D/g,'').slice(0,2))}
+                  placeholder="0"/>
+              </div>
+            </div>
+
+            {/* Quick picks */}
+            {open && (
+              <div style={{marginBottom:18}}>
+                <div style={{fontSize:10,color:'var(--mut)',fontWeight:600,
+                             letterSpacing:'.06em',textTransform:'uppercase',marginBottom:8,textAlign:'center'}}>
+                  Marcadores rápidos
+                </div>
+                <div className="quick-picks">
+                  {QUICK_PICKS.map(([h,a]) => (
+                    <button key={`${h}-${a}`}
+                      className={`quick-pick-btn${isSelected(h,a) ? ' selected' : ''}`}
+                      onClick={() => { setLocalH(String(h)); setLocalA(String(a)); }}>
+                      {h}–{a}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Save / state */}
+            {open ? (
+              <button className="btn-acc" style={{width:'100%',justifyContent:'center'}}
+                disabled={saving || localH === '' || localA === ''}
+                onClick={handleSave}>
+                {saving ? t.saving : saved ? (t.detail_saved || '✅ Guardado') : (t.detail_save_pick || t.save_btn)}
+              </button>
+            ) : (
+              <div style={{textAlign:'center',padding:'8px',fontSize:12,color:'var(--mut)'}}>
+                {t.deadline_passed}
+              </div>
+            )}
+
+            {/* Points breakdown if finished */}
+            {m.status === 'finished' && existing && pts !== null && (
+              <div style={{marginTop:14,padding:'10px 12px',background:'var(--surface2)',
+                           borderRadius:10,display:'flex',alignItems:'center',gap:10}}>
+                <span style={{fontSize:12,color:'var(--mut)'}}>Tu pred.:</span>
+                <span style={{fontFamily:'JetBrains Mono',fontWeight:700,color:'var(--sky)'}}>
+                  {existing.home_goals}–{existing.away_goals}
+                </span>
+                <span className={`pred-pts ${ptsClass}`} style={{marginLeft:'auto'}}>
+                  +{pts} {t.pts}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Match info */}
+        <div style={{marginTop:12,fontSize:12,color:'var(--mut)',
+                     display:'flex',flexDirection:'column',gap:4,padding:'0 2px'}}>
+          <div>{fmtDate(m.match_date)}</div>
+          {m.stadium && <div>{m.stadium}</div>}
+        </div>
       </div>
     </div>
   );
@@ -2259,6 +2687,7 @@ function App() {
   const [lbLoading, setLbLoading]   = useState(true);
   const [adminMode, setAdmin]       = useState(false);
   const [adminBuf, setAdminBuf]     = useState('');
+  const [detailMatchId, setDetailMatchId] = useState(null);
 
   const t = LANGS[lang];
 
@@ -2338,6 +2767,19 @@ function App() {
     </>
   );
 
+  // Detail overlay — full-screen, no tab bar
+  if (detailMatchId) {
+    const dm = matches.find(m => m.id === detailMatchId);
+    return (
+      <>
+        <style>{CSS}</style>
+        <MatchDetailPage t={t} match={dm} user={user} predictions={predictions}
+          onBack={() => setDetailMatchId(null)}
+          onSave={() => { loadPredictions(); loadLeaderboard(); }}/>
+      </>
+    );
+  }
+
   const bottomTabs = [
     {id:'home',    label:t.nav_home,    icon:'home'},
     {id:'predict', label:t.nav_predict, icon:'target'},
@@ -2382,7 +2824,8 @@ function App() {
                             onVerifying={email=>setVerifyEmail(email)}/>}
       {tab==='predict' && <PredictionsPage t={t} user={user} matches={matches}
                             predictions={predictions} onSave={()=>{loadPredictions();loadLeaderboard();}}
-                            onGoAuth={()=>setTab('auth')}/>}
+                            onGoAuth={()=>setTab('auth')}
+                            onOpenDetail={id => setDetailMatchId(id)}/>}
       {tab==='ranking' && <LeaderboardPage t={t} user={user} leaderboard={leaderboard} loading={lbLoading}/>}
       {tab==='bracket' && <BracketPage t={t} matches={matches} predictions={predictions} user={user}/>}
       {tab==='me'      && <ProfilePage t={t} user={user} leaderboard={leaderboard}
