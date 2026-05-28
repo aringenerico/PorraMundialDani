@@ -722,9 +722,16 @@ const CSS = `
   .sticky-save-count { font-size:12px; color:var(--mut); }
 
   /* ── MATCH DETAIL PAGE ── */
-  .detail-back-bar { position:sticky; top:56px; z-index:80;
+  .detail-back-bar { position:sticky; top:0; z-index:80;
     background:var(--bg-deep); border-bottom:1px solid var(--line);
-    padding:8px 16px; display:flex; align-items:center; gap:8px; }
+    padding:10px 16px; display:flex; align-items:center; gap:8px; }
+
+  /* ── COMMUNITY STATS ── */
+  .comm-stats { background:var(--surface); border:1px solid var(--line);
+    border-radius:14px; padding:14px; margin-top:10px; }
+  .comm-bar-wrap { height:5px; background:var(--surface2);
+    border-radius:99px; overflow:hidden; width:100%; }
+  .comm-bar-fill { height:100%; border-radius:99px; transition:width .5s ease; }
   .detail-back-btn { background:none; border:none; color:var(--sky);
     font-size:14px; font-weight:600; cursor:pointer; padding:4px 0;
     display:flex; align-items:center; gap:6px; }
@@ -899,16 +906,14 @@ function AuthPage({ t, lang, setLang, onVerifying }) {
   return (
     <div style={{minHeight:'100vh', background:`radial-gradient(ellipse 120% 60% at 50% 0%, #1a2d52 0%, var(--bg) 60%, var(--bg-deep) 100%)`}}>
       {/* header strip */}
-      <div style={{padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-        <div style={{display:'flex', alignItems:'center', gap:8}}>
-          <div className="brand-mark" style={{width:28,height:28}}>
-            <div className="brand-mark-inner" style={{fontSize:12}}>P</div>
-          </div>
-          <span style={{fontFamily:'Archivo Black,sans-serif', fontSize:12, color:'var(--gold)', textTransform:'uppercase', letterSpacing:'.06em'}}>
-            Porra · Mundial 26
-          </span>
+      <div style={{padding:'12px 16px', display:'flex', alignItems:'center'}}>
+        <div className="brand-mark" style={{width:28,height:28}}>
+          <div className="brand-mark-inner" style={{fontSize:12}}>P</div>
         </div>
-        <LangSelector lang={lang} setLang={setLang}/>
+        <span style={{fontFamily:'Archivo Black,sans-serif', fontSize:12, color:'var(--gold)',
+                      textTransform:'uppercase', letterSpacing:'.06em', marginLeft:8}}>
+          Porra · Mundial 26
+        </span>
       </div>
 
       <div className="auth-wrap">
@@ -1552,6 +1557,99 @@ function PredictionsPage({ t, user, matches, predictions, onSave, onGoAuth, onOp
 // ─────────────────────────────────────────────────────────────────────────────
 const QUICK_PICKS = [[0,0],[1,0],[0,1],[1,1],[2,0],[0,2],[2,1],[1,2],[3,0],[0,3],[3,1],[1,3]];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: COMMUNITY STATS — aggregate predictions from all players for a match
+// NOTE: requires Supabase RLS policy allowing authenticated reads on predictions
+//   e.g. CREATE POLICY "anyone can read predictions" ON predictions FOR SELECT USING (true);
+// ─────────────────────────────────────────────────────────────────────────────
+function CommunityStats({ matchId, homeTeam, awayTeam }) {
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    if (!matchId) return;
+    supabase
+      .from('predictions')
+      .select('home_goals, away_goals')
+      .eq('match_id', matchId)
+      .then(({ data }) => {
+        if (!data || data.length < 2) return;
+        const valid = data.filter(p => p.home_goals !== null && p.away_goals !== null);
+        if (valid.length < 2) return;
+        const total = valid.length;
+        let hw = 0, dr = 0, aw = 0;
+        const scores = {};
+        valid.forEach(({ home_goals: h, away_goals: a }) => {
+          if (h > a) hw++;
+          else if (h < a) aw++;
+          else dr++;
+          const k = `${h}–${a}`;
+          scores[k] = (scores[k] || 0) + 1;
+        });
+        const top = Object.entries(scores).sort((x, y) => y[1] - x[1])[0];
+        setStats({
+          total,
+          hw: Math.round(hw / total * 100),
+          dr: Math.round(dr / total * 100),
+          aw: Math.round(aw / total * 100),
+          topScore: top?.[0] ?? null,
+          topCount: top?.[1] ?? 0,
+        });
+      });
+  }, [matchId]);
+
+  if (!stats) return null;
+
+  const home1 = homeTeam ? (COUNTRIES[homeTeam]?.name || homeTeam).split(' ')[0] : 'Local';
+  const away1 = awayTeam ? (COUNTRIES[awayTeam]?.name || awayTeam).split(' ')[0] : 'Visitante';
+
+  const cols = [
+    { label: home1,    pct: stats.hw, color: 'var(--green)' },
+    { label: 'Empate', pct: stats.dr, color: 'var(--mut)'   },
+    { label: away1,    pct: stats.aw, color: 'var(--coral)'  },
+  ];
+
+  return (
+    <div className="comm-stats">
+      <div style={{ fontSize:11, fontWeight:700, color:'var(--mut)',
+                    letterSpacing:'.08em', textTransform:'uppercase', marginBottom:14 }}>
+        Comunidad · {stats.total} jugadores
+      </div>
+
+      {/* Outcome columns */}
+      <div style={{ display:'flex', gap:10 }}>
+        {cols.map(({ label, pct, color }) => (
+          <div key={label} style={{ flex:1, display:'flex', flexDirection:'column',
+                                    gap:6, alignItems:'center' }}>
+            <div style={{ fontFamily:'JetBrains Mono', fontSize:18, fontWeight:700, color }}>
+              {pct}%
+            </div>
+            <div className="comm-bar-wrap">
+              <div className="comm-bar-fill" style={{ width:`${pct}%`, background:color }}/>
+            </div>
+            <div style={{ fontSize:10, color:'var(--mut)', textAlign:'center',
+                          fontWeight:600, lineHeight:1.2 }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Most voted score */}
+      {stats.topScore && (
+        <div style={{ marginTop:12, paddingTop:10, borderTop:'1px solid var(--line)',
+                      display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ fontSize:11, color:'var(--mut)' }}>Más votado:</span>
+          <span style={{ fontFamily:'JetBrains Mono', fontWeight:700, fontSize:15,
+                          color:'var(--gold)' }}>
+            {stats.topScore}
+          </span>
+          <span style={{ fontSize:11, color:'var(--mut)', marginLeft:'auto' }}>
+            {stats.topCount} {stats.topCount === 1 ? 'jugador' : 'jugadores'}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MatchDetailPage({ t, match: m, user, predictions, onBack, onSave }) {
   const existing = predictions.find(p => p.match_id === m?.id);
   const [localH, setLocalH] = useState('');
@@ -1598,7 +1696,7 @@ function MatchDetailPage({ t, match: m, user, predictions, onBack, onSave }) {
       {/* Back bar */}
       <div className="detail-back-bar">
         <button className="detail-back-btn" onClick={onBack}>
-          ← {t.detail_back || 'Pronósticos'}
+          {t.detail_back || '← Pronósticos'}
         </button>
         <span style={{marginLeft:'auto', fontSize:11, color:'var(--mut)'}}>
           {PHASE_LABELS[m.phase]}{m.group_name ? ` · Grupo ${m.group_name}` : ''}
@@ -1726,8 +1824,11 @@ function MatchDetailPage({ t, match: m, user, predictions, onBack, onSave }) {
           </div>
         )}
 
+        {/* Community stats */}
+        <CommunityStats matchId={m.id} homeTeam={m.home_team} awayTeam={m.away_team}/>
+
         {/* Match info */}
-        <div style={{marginTop:12,fontSize:12,color:'var(--mut)',
+        <div style={{marginTop:10,fontSize:12,color:'var(--mut)',
                      display:'flex',flexDirection:'column',gap:4,padding:'0 2px'}}>
           <div>{fmtDate(m.match_date)}</div>
           {m.stadium && <div>{m.stadium}</div>}
@@ -2804,7 +2905,20 @@ function App() {
             <div className="topbar-sub">USA · MEX · CAN</div>
           </div>
         </div>
-        <LangSelector lang={lang} setLang={setLang}/>
+        {/* Subtle admin icon — tap to enter PIN */}
+        {!adminMode && (
+          <button
+            style={{background:'none',border:'none',cursor:'pointer',
+                    opacity:0.2,padding:'4px 6px',flexShrink:0,color:'var(--mut)'}}
+            onClick={() => {
+              const pin = window.prompt('');
+              if (pin === ADMIN_PIN) { setAdmin(true); setTab('admin'); }
+            }}
+            aria-label="Admin"
+          >
+            <Icon name="lock" size={15} color="var(--mut)"/>
+          </button>
+        )}
         {user ? (
           <div className="topbar-user" onClick={()=>setTab('me')}>
             <div className="topbar-avatar">{initials(displayName)}</div>
