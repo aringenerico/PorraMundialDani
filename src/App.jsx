@@ -185,6 +185,15 @@ const LANGS = {
     hero_review:'Ir →',
     unsaved_changes_one:'1 cambio sin guardar',
     unsaved_changes_multi:'{n} cambios sin guardar',
+    lb_filter_general:'General',
+    lb_filter_matchday:'Jornada',
+    lb_filter_phase:'Por fase',
+    lb_legend_exact:'Exacto',
+    lb_legend_result:'Resultado',
+    lb_legend_goals:'Goles',
+    lb_me_pin:'TÚ',
+    lb_jump_to_me:'↓ Mi posición #',
+    lb_showing_only:'Mostrando solo',
   },
   en: {
     nav_home:'Home', nav_predict:'Predictions', nav_results:'Results',
@@ -242,6 +251,15 @@ const LANGS = {
     hero_review:'Go →',
     unsaved_changes_one:'1 unsaved change',
     unsaved_changes_multi:'{n} unsaved changes',
+    lb_filter_general:'Overall',
+    lb_filter_matchday:'Matchday',
+    lb_filter_phase:'By phase',
+    lb_legend_exact:'Exact',
+    lb_legend_result:'Result',
+    lb_legend_goals:'Goals',
+    lb_me_pin:'YOU',
+    lb_jump_to_me:'↓ My position #',
+    lb_showing_only:'Showing only',
   },
   pt: {
     nav_home:'Início', nav_predict:'Palpites', nav_results:'Resultados',
@@ -299,6 +317,15 @@ const LANGS = {
     hero_review:'Ir →',
     unsaved_changes_one:'1 alteração não salva',
     unsaved_changes_multi:'{n} alterações não salvas',
+    lb_filter_general:'Geral',
+    lb_filter_matchday:'Rodada',
+    lb_filter_phase:'Por fase',
+    lb_legend_exact:'Exato',
+    lb_legend_result:'Resultado',
+    lb_legend_goals:'Gols',
+    lb_me_pin:'VOCÊ',
+    lb_jump_to_me:'↓ Minha posição #',
+    lb_showing_only:'Mostrando apenas',
   },
 };
 
@@ -758,6 +785,81 @@ const CSS = `
   .quick-pick-btn.selected { background:var(--gold-glow); border-color:var(--gold); color:var(--gold); }
   .login-banner { margin:24px 16px; padding:24px 20px; background:var(--surface);
     border:1px dashed var(--line); border-radius:16px; text-align:center; }
+
+  /* ── LEADERBOARD FILTERS ── */
+  .lb-filters { display:flex; gap:6px; padding:10px 16px 0;
+    flex-wrap:wrap; }
+  .lb-phase-wrap { position:relative; }
+  .lb-phase-menu { position:absolute; top:calc(100% + 6px); left:0; z-index:20;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:10px; padding:4px; min-width:160px;
+    box-shadow:0 8px 24px rgba(0,0,0,.5); display:flex; flex-direction:column; }
+  .lb-phase-menu button { background:transparent; border:none;
+    color:var(--txt-mid); text-align:left; padding:8px 12px;
+    font-size:12px; font-weight:600; border-radius:6px; cursor:pointer; }
+  .lb-phase-menu button:hover { background:var(--surface2); color:var(--txt); }
+  .lb-phase-menu button:disabled { opacity:.4; cursor:not-allowed; }
+  .lb-filter-note { padding:4px 16px 0; font-size:11px; color:var(--mut); }
+
+  /* ── LEADERBOARD ROW v2 ── */
+  .lb-row-v2 { display:flex; align-items:center; gap:12px; padding:10px 12px;
+    background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    margin-bottom:6px; cursor:pointer;
+    transition:border-color .15s ease, transform .15s ease; }
+  .lb-row-v2:hover { border-color:rgba(255,255,255,.2); }
+  .lb-row-v2:active { transform:scale(0.99); }
+  .lb-row-v2.me { background:var(--gold-glow); border-color:var(--gold); }
+  .lb-row-v2.me .lb-row-name { color:var(--gold); }
+  .lb-row-main { flex:1; min-width:0; }
+  .lb-row-name { font-size:13px; font-weight:700; color:var(--txt);
+    display:flex; align-items:center; gap:6px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lb-me-pin { font-size:8.5px; font-weight:800; color:var(--bg-deep);
+    background:var(--gold); padding:1px 6px; border-radius:99px;
+    text-transform:uppercase; letter-spacing:.08em; flex-shrink:0; }
+  .lb-row-bars { display:flex; gap:2px; height:4px; margin-top:6px;
+    border-radius:99px; overflow:hidden; max-width:180px;
+    background:var(--surface2); }
+  .lb-row-pts { text-align:right; min-width:50px; }
+  .lb-row-pts-val { font-family:'JetBrains Mono',monospace; font-size:17px;
+    font-weight:700; color:var(--txt); line-height:1;
+    font-variant-numeric:tabular-nums; }
+  .lb-row-pts-sub { font-size:9.5px; color:var(--mut); margin-top:3px;
+    font-weight:600; letter-spacing:.06em; }
+
+  /* ── LEADERBOARD LEGEND ── */
+  .lb-legend { display:flex; gap:14px; padding:4px 16px 8px;
+    font-size:10px; color:var(--mut); font-weight:600; }
+  .lb-legend > span { display:flex; align-items:center; gap:5px; }
+  .lb-legend .dot { width:8px; height:8px; border-radius:2px; display:inline-block; }
+  .lb-legend .dot.gold  { background:var(--gold); }
+  .lb-legend .dot.green { background:var(--green); }
+  .lb-legend .dot.sky   { background:var(--sky); }
+
+  /* ── PODIUM EXTRAS ── */
+  .podium-item { cursor:pointer; }
+  .podium-crown { margin-bottom:-2px;
+    filter:drop-shadow(0 0 8px rgba(245,183,49,0.6)); }
+  .podium-me-pin { font-size:7.5px; font-weight:800; color:var(--bg-deep);
+    background:var(--gold); padding:1px 5px; border-radius:99px;
+    margin-top:-8px; position:relative; z-index:2;
+    text-transform:uppercase; letter-spacing:.08em; align-self:center; }
+
+  /* ── JUMP FAB ── */
+  .lb-fab { position:fixed; right:16px; bottom:92px; z-index:40;
+    background:var(--gold); color:var(--bg-deep);
+    border:none; border-radius:99px; padding:10px 16px;
+    font-size:12px; font-weight:800; cursor:pointer;
+    box-shadow:0 8px 24px rgba(245,183,49,.4);
+    animation:lb-fab-in .25s ease both; }
+  @keyframes lb-fab-in {
+    from { opacity:0; transform:translateY(20px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* ── STREAK ── */
+  .lb-streak { display:inline-flex; align-items:center; gap:2px;
+    color:var(--coral); font-size:10.5px; font-weight:800; margin-left:4px; }
 `;
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -1829,38 +1931,232 @@ function MatchDetailPage({ t, match: m, user, predictions, onBack, onSave }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: LEADERBOARD
 // ─────────────────────────────────────────────────────────────────────────────
-function LeaderboardPage({ t, user, leaderboard, loading }) {
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: LEADERBOARD FILTERS (PR-A §4)
+// ─────────────────────────────────────────────────────────────────────────────
+function LeaderboardFilters({ t, filter, setFilter, matches }) {
+  const [phaseOpen, setPhaseOpen] = useState(false);
+
+  const matchdays = useMemo(() =>
+    [...new Set(matches.map(m => m.matchday))].sort((a,b) => a-b),
+    [matches]
+  );
+  const lastClosed = useMemo(() => {
+    const now = Date.now();
+    return matchdays
+      .filter(md => matches.some(m => m.matchday === md && new Date(m.deadline) < now))
+      .pop() ?? null;
+  }, [matchdays, matches]);
+
+  return (
+    <>
+      <div className="lb-filters">
+        <button className={`chip ${filter.mode==='general'?'on':''}`}
+                onClick={() => setFilter({ mode:'general' })}>
+          {t.lb_filter_general||'General'}
+        </button>
+        {lastClosed != null && (
+          <button className={`chip ${filter.mode==='matchday'?'on':''}`}
+                  onClick={() => setFilter({ mode:'matchday', md: lastClosed })}>
+            {t.lb_filter_matchday||'Jornada'} {filter.mode==='matchday' ? filter.md : lastClosed}
+          </button>
+        )}
+        <div className="lb-phase-wrap">
+          <button className={`chip ${filter.mode==='phase'?'on':''}`}
+                  onClick={() => setPhaseOpen(o=>!o)}>
+            {filter.mode==='phase'
+              ? PHASE_LABELS[filter.phase]
+              : (t.lb_filter_phase||'Por fase')}
+            <span style={{marginLeft:4,fontSize:9}}>▾</span>
+          </button>
+          {phaseOpen && (
+            <div className="lb-phase-menu">
+              {PHASES.map(p => {
+                const has = matches.some(m => m.phase === p);
+                return (
+                  <button key={p} disabled={!has}
+                    onClick={() => { setFilter({mode:'phase',phase:p}); setPhaseOpen(false); }}>
+                    {PHASE_LABELS[p]}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+      {filter.mode !== 'general' && (
+        <div className="lb-filter-note">
+          {t.lb_showing_only||'Mostrando solo'}{' '}
+          {filter.mode==='matchday'
+            ? `${t.lb_filter_matchday||'Jornada'} ${filter.md}`
+            : PHASE_LABELS[filter.phase]}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: AVATAR (PR-A §5)
+// ─────────────────────────────────────────────────────────────────────────────
+function Avatar({ src, name, size=36 }) {
+  const [imgErr, setImgErr] = useState(false);
+  if (src && !imgErr) {
+    return (
+      <img src={src} alt={name||''}
+        onError={() => setImgErr(true)}
+        style={{width:size, height:size, borderRadius:size*0.3,
+                objectFit:'cover', border:'1px solid var(--line)',
+                flexShrink:0}}/>
+    );
+  }
+  return (
+    <div className="lb-avatar" style={{
+      width:size, height:size, borderRadius:size*0.3,
+      fontSize:size*0.32, flexShrink:0,
+    }}>
+      {initials(name)}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: LB ROW v2 (PR-A §5)
+// ─────────────────────────────────────────────────────────────────────────────
+function LbRow({ t, row, rank, isMe, id }) {
+  const total = (row.pts_exact||0) + (row.pts_result||0) + (row.pts_goals||0);
+  const segs = total > 0 ? [
+    { v: row.pts_exact,  c: 'var(--gold)' },
+    { v: row.pts_result, c: 'var(--green)' },
+    { v: row.pts_goals,  c: 'var(--sky)' },
+  ] : [];
+  return (
+    <div id={id} className={`lb-row-v2 ${isMe?'me':''}`}>
+      <div className={`lb-rank ${rank<=3?`r${rank}`:''}`}>{rank}</div>
+      <Avatar src={row.avatar_url} name={row.display_name} size={36}/>
+      <div className="lb-row-main">
+        <div className="lb-row-name">
+          <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>
+            {row.display_name || row.email?.split('@')[0] || 'Anónimo'}
+          </span>
+          {isMe && <span className="lb-me-pin">{t.lb_me_pin||'TÚ'}</span>}
+        </div>
+        {total > 0 && (
+          <div className="lb-row-bars">
+            {segs.filter(s=>s.v>0).map((s,i)=>(
+              <div key={i} style={{flex:s.v, background:s.c, height:'100%'}}/>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="lb-row-pts">
+        <div className="lb-row-pts-val">{row.total_pts}</div>
+        <div className="lb-row-pts-sub">{t.pts||'pts'}</div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: CROWN SVG (PR-A §6)
+// ─────────────────────────────────────────────────────────────────────────────
+function CrownSVG({ color }) {
+  return (
+    <svg width="22" height="14" viewBox="0 0 22 14" fill={color}>
+      <path d="M2 13L0 3l5 4 6-7 6 7 5-4-2 10H2z" stroke={color} strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATOM: JUMP-TO-ME FAB (PR-A §7)
+// ─────────────────────────────────────────────────────────────────────────────
+function JumpToMeFab({ t, user, leaderboard }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const myIdx = leaderboard.findIndex(r => r.user_id === user.id);
+    if (myIdx < 0 || myIdx < 3) return;
+    const check = () => {
+      const el = document.getElementById('lb-me-row');
+      if (!el) { setVisible(true); return; }
+      const rect = el.getBoundingClientRect();
+      setVisible(!(rect.top > 0 && rect.bottom < window.innerHeight));
+    };
+    check();
+    window.addEventListener('scroll', check, { passive:true });
+    return () => window.removeEventListener('scroll', check);
+  }, [user, leaderboard]);
+
+  if (!visible || !user) return null;
+  const myIdx = leaderboard.findIndex(r => r.user_id === user.id);
+  if (myIdx < 0) return null;
+
+  return (
+    <button className="lb-fab"
+      onClick={() => document.getElementById('lb-me-row')?.scrollIntoView({behavior:'smooth',block:'center'})}>
+      {t.lb_jump_to_me||'↓ Mi posición #'}{myIdx+1}
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE: LEADERBOARD
+// ─────────────────────────────────────────────────────────────────────────────
+function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, matches }) {
+  const [filter,           setFilter]           = useState({ mode:'general' });
+  const [filteredData,     setFilteredData]     = useState(null);
+  const [filterLoading,    setFilterLoading]    = useState(false);
+
+  useEffect(() => {
+    if (filter.mode === 'general') { setFilteredData(null); return; }
+    let cancelled = false;
+    setFilterLoading(true);
+    supabase.rpc('leaderboard_filtered', {
+      p_matchday: filter.mode === 'matchday' ? filter.md : null,
+      p_phase:    filter.mode === 'phase'    ? filter.phase : null,
+    }).then(({ data }) => {
+      if (!cancelled) { setFilteredData(data||[]); setFilterLoading(false); }
+    });
+    return () => { cancelled = true; };
+  }, [filter]);
+
   if (loading) return <Spinner/>;
-  const n = leaderboard.length;
-  const totalPool = n * PRIZE_PER_HEAD;
 
-  const top3 = leaderboard.slice(0,3);
-  const rest = leaderboard.slice(3);
+  const leaderboard = filteredData ?? leaderboardProp;
+  const n           = leaderboard.length;
+  const totalPool   = leaderboardProp.length * PRIZE_PER_HEAD; // always full pool
 
-  const podiumOrder = top3.length >= 3
-    ? [top3[1], top3[0], top3[2]]   // 2nd, 1st, 3rd
-    : top3;
-
-  const podiumColors = ['#c0c0c0', '#F5B731', '#cd7f32'];
+  const top3        = leaderboard.slice(0,3);
+  const rest        = leaderboard.slice(3);
+  const podiumOrder = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3;
+  const podiumColors  = ['#c0c0c0', '#F5B731', '#cd7f32'];
   const podiumHeights = [80, 110, 66];
 
   return (
     <div className="page">
+      {/* HEADER */}
       <div style={{padding:'14px 16px 0', display:'flex', alignItems:'baseline', gap:8}}>
         <div style={{fontFamily:'Archivo Black,sans-serif',fontSize:22,textTransform:'uppercase'}}>
           {t.ranking_title}
         </div>
-        <span style={{fontSize:11,color:'var(--mut)',marginLeft:'auto'}}>{n} jugadores</span>
+        <span style={{fontSize:11,color:'var(--mut)',marginLeft:'auto'}}>{leaderboardProp.length} jugadores</span>
       </div>
 
-      {/* PRIZE POOL BANNER */}
-      {n > 0 && (
+      {/* FILTER CHIPS */}
+      <LeaderboardFilters t={t} filter={filter} setFilter={setFilter} matches={matches}/>
+
+      {/* PRIZE POOL BANNER — only in general mode, uses full pool */}
+      {leaderboardProp.length > 0 && filter.mode === 'general' && (
         <div style={{padding:'12px 16px 0'}}>
           <div className="prize-card" style={{padding:'12px 16px'}}>
             <div style={{display:'flex',alignItems:'center',gap:12}}>
               <div>
-                <div style={{fontSize:10,fontWeight:700,color:'var(--mut)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:2}}>
-                  🏆 {t.prize_pool}
+                <div style={{display:'flex',alignItems:'center',gap:6,fontSize:10,fontWeight:700,
+                  color:'var(--mut)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:2}}>
+                  <Icon name="trophy" size={12} color="var(--gold)" stroke={2}/>
+                  {t.prize_pool}
                 </div>
                 <div style={{fontFamily:'JetBrains Mono,monospace',fontSize:28,fontWeight:700,color:'var(--gold)',lineHeight:1}}>
                   {fmtEur(totalPool)}
@@ -1868,8 +2164,14 @@ function LeaderboardPage({ t, user, leaderboard, loading }) {
               </div>
               <div style={{flex:1}}/>
               <div style={{textAlign:'right',fontSize:12,color:'var(--mut)'}}>
-                {[{m:'🥇',p:PRIZE_DIST[0]},{m:'🥈',p:PRIZE_DIST[1]},{m:'🥉',p:PRIZE_DIST[2]}].map((r,i)=>(
-                  <div key={i}>{r.m} {fmtEur(Math.floor(totalPool*r.p))}</div>
+                {[
+                  {lbl:'1º',p:PRIZE_DIST[0],c:'var(--gold)'},
+                  {lbl:'2º',p:PRIZE_DIST[1],c:'#c0c0c0'},
+                  {lbl:'3º',p:PRIZE_DIST[2],c:'#cd7f32'},
+                ].map((r,i)=>(
+                  <div key={i} style={{color:r.c,fontWeight:700}}>
+                    {r.lbl} {fmtEur(Math.floor(totalPool*r.p))}
+                  </div>
                 ))}
               </div>
             </div>
@@ -1877,96 +2179,91 @@ function LeaderboardPage({ t, user, leaderboard, loading }) {
         </div>
       )}
 
+      {filterLoading && <Spinner/>}
+
       {/* PODIUM */}
-      {top3.length >= 3 && (
-        <>
-          <div style={{padding:'20px 0 0'}}>
-            <div className="podium">
-              {podiumOrder.map((row, i) => {
-                const origRank = top3.indexOf(row) + 1;
-                const clr = podiumColors[origRank-1];
-                const h = podiumHeights[i];
-                const isMe = user?.id === row.user_id;
-                return (
-                  <div key={row.user_id} className="podium-item">
-                    <div className="podium-avatar" style={{
-                      background: isMe ? `linear-gradient(135deg,var(--gold),var(--coral))` : clr,
-                      border:`2px solid ${clr}`,
-                      boxShadow:`0 0 20px ${clr}55`,
-                    }}>
-                      {initials(row.display_name)}
-                    </div>
-                    <div className="podium-name">{row.display_name?.split(' ')[0]}</div>
-                    <div className="podium-pts" style={{color:clr}}>
-                      {row.total_pts}<span style={{fontSize:9,color:'var(--mut)',marginLeft:2}}>pts</span>
-                    </div>
-                    <div className="podium-bar" style={{
-                      height:h,
-                      background:`linear-gradient(180deg,${clr}aa 0%,${clr}22 100%)`,
-                      border:`1px solid ${clr}66`, borderBottom:'none',
-                    }}>
-                      <span className="podium-bar-num" style={{color:clr}}>{origRank}</span>
-                    </div>
+      {!filterLoading && top3.length >= 3 && (
+        <div style={{padding:'20px 0 0'}}>
+          <div className="podium">
+            {podiumOrder.map((row, i) => {
+              const origRank = top3.indexOf(row) + 1;
+              const clr  = podiumColors[origRank-1];
+              const h    = podiumHeights[i];
+              const isMe = user?.id === row.user_id;
+              return (
+                <div key={row.user_id} className="podium-item" style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
+                  {origRank === 1 && (
+                    <div className="podium-crown"><CrownSVG color={clr}/></div>
+                  )}
+                  <Avatar src={row.avatar_url} name={row.display_name} size={48}/>
+                  {isMe && <div className="podium-me-pin">{t.lb_me_pin||'TÚ'}</div>}
+                  <div className="podium-name">{row.display_name?.split(' ')[0]}</div>
+                  <div className="podium-pts" style={{color:clr}}>
+                    {row.total_pts}<span style={{fontSize:9,color:'var(--mut)',marginLeft:2}}>pts</span>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="podium-bar" style={{
+                    height:h,
+                    background:`linear-gradient(180deg,${clr}aa 0%,${clr}22 100%)`,
+                    border:`1px solid ${clr}66`, borderBottom:'none',
+                  }}>
+                    <span className="podium-bar-num" style={{color:clr}}>{origRank}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </>
+        </div>
       )}
 
-      {/* REST */}
-      {rest.length > 0 && (
+      {/* LEGEND + REST */}
+      {!filterLoading && rest.length > 0 && (
         <>
           <SectionTitle>Resto</SectionTitle>
-          <div style={{padding:'0 16px',display:'flex',flexDirection:'column',gap:6}}>
+          <div className="lb-legend">
+            <span><span className="dot gold"/>{ t.lb_legend_exact ||'Exacto'}</span>
+            <span><span className="dot green"/>{t.lb_legend_result||'Resultado'}</span>
+            <span><span className="dot sky"/>  {t.lb_legend_goals ||'Goles'}</span>
+          </div>
+          <div style={{padding:'0 16px'}}>
             {rest.map((row,i) => {
               const rank = i+4;
               const isMe = user?.id === row.user_id;
               return (
-                <div key={row.user_id} className={`lb-row ${isMe?'me':''}`}>
-                  <div className={`lb-rank ${rank<=3?`r${rank}`:''}`}>{rank}</div>
-                  <div className="lb-avatar">{initials(row.display_name)}</div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div className="lb-name">{row.display_name}</div>
-                    <div style={{fontSize:10,color:'var(--mut)',marginTop:3}}>
-                      🎯 {row.pts_exact} · ✅ {row.pts_result} · ⚽ {row.pts_goals}
-                    </div>
-                  </div>
-                  <div style={{textAlign:'right'}}>
-                    <div className="lb-pts">{row.total_pts}</div>
-                    <div className="lb-pts-sub">{t.pts}</div>
-                  </div>
-                </div>
+                <LbRow key={row.user_id} t={t} row={row} rank={rank} isMe={isMe}
+                  id={isMe ? 'lb-me-row' : undefined}/>
               );
             })}
           </div>
         </>
       )}
 
-      {/* TOP3 as list if podium not shown */}
-      {top3.length < 3 && top3.length > 0 && (
-        <div style={{padding:'0 16px',display:'flex',flexDirection:'column',gap:6,marginTop:8}}>
-          {leaderboard.map((row,i)=>{
-            const rank=i+1;
-            const isMe=user?.id===row.user_id;
-            return (
-              <div key={row.user_id} className={`lb-row ${isMe?'me':''}`}>
-                <div className={`lb-rank ${rank<=3?`r${rank}`:''}`}>
-                  {rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank}
-                </div>
-                <div className="lb-avatar">{initials(row.display_name)}</div>
-                <div style={{flex:1}}><div className="lb-name">{row.display_name}</div></div>
-                <div className="lb-pts">{row.total_pts}<span style={{fontSize:10,color:'var(--mut)',marginLeft:4}}>pts</span></div>
-              </div>
-            );
-          })}
-        </div>
+      {/* FLAT LIST when <3 players */}
+      {!filterLoading && top3.length < 3 && top3.length > 0 && (
+        <>
+          <div className="lb-legend" style={{marginTop:8}}>
+            <span><span className="dot gold"/>{ t.lb_legend_exact ||'Exacto'}</span>
+            <span><span className="dot green"/>{t.lb_legend_result||'Resultado'}</span>
+            <span><span className="dot sky"/>  {t.lb_legend_goals ||'Goles'}</span>
+          </div>
+          <div style={{padding:'0 16px'}}>
+            {leaderboard.map((row,i) => {
+              const rank = i+1;
+              const isMe = user?.id === row.user_id;
+              return (
+                <LbRow key={row.user_id} t={t} row={row} rank={rank} isMe={isMe}
+                  id={isMe ? 'lb-me-row' : undefined}/>
+              );
+            })}
+          </div>
+        </>
       )}
 
-      {leaderboard.length===0 && (
+      {!filterLoading && n === 0 && (
         <div style={{padding:'40px',textAlign:'center',color:'var(--mut)'}}>{t.no_predictions}</div>
       )}
+
+      {/* JUMP FAB */}
+      <JumpToMeFab t={t} user={user} leaderboard={leaderboard}/>
     </div>
   );
 }
@@ -2928,7 +3225,7 @@ function App() {
                             predictions={predictions} onSave={()=>{loadPredictions();loadLeaderboard();}}
                             onGoAuth={()=>setTab('auth')}
                             onOpenDetail={id => setDetailMatchId(id)}/>}
-      {tab==='ranking' && <LeaderboardPage t={t} user={user} leaderboard={leaderboard} loading={lbLoading}/>}
+      {tab==='ranking' && <LeaderboardPage t={t} user={user} leaderboard={leaderboard} loading={lbLoading} matches={matches}/>}
       {tab==='bracket' && <BracketPage t={t} matches={matches} predictions={predictions} user={user}/>}
       {tab==='me'      && <ProfilePage t={t} user={user} leaderboard={leaderboard}
                             matches={matches} predictions={predictions}
