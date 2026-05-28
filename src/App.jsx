@@ -871,6 +871,21 @@ const initials = name => (name||'?').split(' ').map(s=>s[0]).join('').slice(0,2)
 const fmtEur = n => `${n.toLocaleString('es-ES')}€`;
 const fmt = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
 
+// ─── USER COLOR (deterministic from userId) ───────────────────────────────────
+const USER_AVATAR_COLORS = [
+  '#F5B731','#FF6B8A','#40D490','#60AAFF',
+  '#FF9F43','#A29BFE','#FD79A8','#55EFC4',
+  '#FDCB6E','#6C5CE7','#00CEC9','#E17055',
+];
+function userColor(userId) {
+  if (!userId) return USER_AVATAR_COLORS[0];
+  let h = 0;
+  for (let i = 0; i < userId.length; i++) {
+    h = Math.imul(31, h) + userId.charCodeAt(i) | 0;
+  }
+  return USER_AVATAR_COLORS[Math.abs(h) % USER_AVATAR_COLORS.length];
+}
+
 // ─── COUNTDOWN HELPERS ───────────────────────────────────────────────────────
 /** Devuelve la jornada con deadline más cercano aún no vencido */
 function getNextOpenMatchday(matches) {
@@ -1999,8 +2014,9 @@ function LeaderboardFilters({ t, filter, setFilter, matches }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // ATOM: AVATAR (PR-A §5)
 // ─────────────────────────────────────────────────────────────────────────────
-function Avatar({ src, name, size=36 }) {
+function Avatar({ src, name, size=36, userId }) {
   const [imgErr, setImgErr] = useState(false);
+  const bg = userColor(userId);
   if (src && !imgErr) {
     return (
       <img src={src} alt={name||''}
@@ -2011,9 +2027,12 @@ function Avatar({ src, name, size=36 }) {
     );
   }
   return (
-    <div className="lb-avatar" style={{
-      width:size, height:size, borderRadius:size*0.3,
-      fontSize:size*0.32, flexShrink:0,
+    <div style={{
+      width:size, height:size, borderRadius:size*0.3, flexShrink:0,
+      background:bg,
+      display:'flex', alignItems:'center', justifyContent:'center',
+      fontSize:size*0.34, fontWeight:800, color:'var(--bg-deep)',
+      fontFamily:"'Archivo Black',sans-serif", letterSpacing:'-0.02em',
     }}>
       {initials(name)}
     </div>
@@ -2033,7 +2052,7 @@ function LbRow({ t, row, rank, isMe, id }) {
   return (
     <div id={id} className={`lb-row-v2 ${isMe?'me':''}`}>
       <div className={`lb-rank ${rank<=3?`r${rank}`:''}`}>{rank}</div>
-      <Avatar src={row.avatar_url} name={row.display_name} size={36}/>
+      <Avatar src={row.avatar_url} name={row.display_name} size={36} userId={row.user_id}/>
       <div className="lb-row-main">
         <div className="lb-row-name">
           <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>
@@ -2195,7 +2214,8 @@ function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, match
                   {origRank === 1 && (
                     <div className="podium-crown"><CrownSVG color={clr}/></div>
                   )}
-                  <Avatar src={row.avatar_url} name={row.display_name} size={48}/>
+                  <Avatar src={row.avatar_url} name={row.display_name}
+                    size={origRank===1 ? 58 : 48} userId={row.user_id}/>
                   {isMe && <div className="podium-me-pin">{t.lb_me_pin||'TÚ'}</div>}
                   <div className="podium-name">{row.display_name?.split(' ')[0]}</div>
                   <div className="podium-pts" style={{color:clr}}>
