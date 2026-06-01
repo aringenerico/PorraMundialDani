@@ -17,7 +17,7 @@ const PHASE_LABELS = {
 
 // ─── PRIZE SYSTEM ─────────────────────────────────────────────────────────────
 const PRIZE_PER_HEAD = 10;
-const PRIZE_DIST     = [0.80, 0.15, 0.05];
+const PRIZE_DIST     = [0.70, 0.20, 0.10];
 
 // ─── FLAGS (compat) ───────────────────────────────────────────────────────────
 const FLAGS = {
