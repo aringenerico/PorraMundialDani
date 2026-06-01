@@ -2794,7 +2794,12 @@ function BracketPage({ t, matches, predictions = [], user }) {
     [matches, predByMatchNum, mode]
   );
 
-  const hasKnockout = knockoutMatches.length > 0;
+  // Only show bracket when there are finished group-stage matches
+  const hasGroupResults = useMemo(
+    () => matches.some(m => m.phase === 'group' && m.status === 'finished'),
+    [matches]
+  );
+  const hasKnockout = knockoutMatches.length > 0 && hasGroupResults;
   const hasMyPreds  = predByMatchNum.size > 0;
   const effectiveMode = (!user && mode !== 'real') ? 'real' : mode;
 
