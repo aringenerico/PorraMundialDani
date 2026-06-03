@@ -101,6 +101,94 @@ const calcScore = (predH, predA, realH, realA) => {
   return gh + ga + res + exact;
 };
 
+// ─── AWARD PREDICTIONS ────────────────────────────────────────────────────────
+const AWARD_BONUS = 5;
+
+const AWARD_CONFIG = [
+  { key:'champion',        label:'Equipo Campeón',  icon:'trophy', type:'team'   },
+  { key:'top_scorer',      label:'Máximo Goleador', icon:'boot',   type:'player' },
+  { key:'mvp',             label:'MVP',             icon:'star',   type:'player' },
+  { key:'best_goalkeeper', label:'Mejor Portero',   icon:'glove',  type:'player' },
+  { key:'best_player',     label:'Mejor Jugador',   icon:'medal',  type:'player' },
+];
+
+const AWARD_TEAMS = Object.keys(COUNTRIES).sort((a, b) => a.localeCompare(b));
+
+const AWARD_PLAYERS = {
+  top_scorer: [
+    {name:'Kylian Mbappé',team:'France'},{name:'Erling Haaland',team:'Norway'},
+    {name:'Harry Kane',team:'England'},{name:'Lautaro Martínez',team:'Argentina'},
+    {name:'Julián Álvarez',team:'Argentina'},{name:'Vinicius Jr',team:'Brazil'},
+    {name:'Raphinha',team:'Brazil'},{name:'Endrick',team:'Brazil'},
+    {name:'Cristiano Ronaldo',team:'Portugal'},{name:'Gonçalo Ramos',team:'Portugal'},
+    {name:'Álvaro Morata',team:'Spain'},{name:'Ferran Torres',team:'Spain'},
+    {name:'Lamine Yamal',team:'Spain'},{name:'Kai Havertz',team:'Germany'},
+    {name:'Florian Wirtz',team:'Germany'},{name:'Jamal Musiala',team:'Germany'},
+    {name:'Marcus Thuram',team:'France'},{name:'Randal Kolo Muani',team:'France'},
+    {name:'Memphis Depay',team:'Netherlands'},{name:'Cody Gakpo',team:'Netherlands'},
+    {name:'Donyell Malen',team:'Netherlands'},{name:'Romelu Lukaku',team:'Belgium'},
+    {name:'Lois Openda',team:'Belgium'},{name:'Darwin Núñez',team:'Uruguay'},
+    {name:'Rodrigo Bentancur',team:'Uruguay'},{name:'Luis Díaz',team:'Colombia'},
+    {name:'Jhon Durán',team:'Colombia'},{name:'Jhon Arias',team:'Colombia'},
+    {name:'Hakim Ziyech',team:'Morocco'},{name:'Youssef En-Nesyri',team:'Morocco'},
+    {name:'Hirving Lozano',team:'Mexico'},{name:'Santiago Giménez',team:'Mexico'},
+    {name:'Raúl Jiménez',team:'Mexico'},{name:'Christian Pulisic',team:'USA'},
+    {name:'Folarin Balogun',team:'USA'},{name:'Ricardo Pepi',team:'USA'},
+    {name:'Jonathan David',team:'Canada'},{name:'Cyle Larin',team:'Canada'},
+    {name:'Alphonso Davies',team:'Canada'},{name:'Takumi Minamino',team:'Japan'},
+    {name:'Kaoru Mitoma',team:'Japan'},{name:'Ayase Ueda',team:'Japan'},
+    {name:'Breel Embolo',team:'Switzerland'},{name:'Noah Okafor',team:'Switzerland'},
+    {name:'Marko Arnautović',team:'Austria'},{name:'Michael Gregoritsch',team:'Austria'},
+    {name:'Enner Valencia',team:'Ecuador'},{name:'Moisés Caicedo',team:'Ecuador'},
+    {name:'Son Heung-min',team:'South Korea'},{name:'Hwang Hee-chan',team:'South Korea'},
+    {name:'Cho Gue-sung',team:'South Korea'},{name:'Mehdi Taremi',team:'Iran'},
+    {name:'Sardar Azmoun',team:'Iran'},{name:'Martin Boyle',team:'Australia'},
+    {name:'Mathew Leckie',team:'Australia'},{name:'Miguel Almirón',team:'Paraguay'},
+    {name:'Antonio Sanabria',team:'Paraguay'},{name:'Omar Marmoush',team:'Egypt'},
+    {name:'Mostafa Mohamed',team:'Egypt'},{name:'Mohamed Salah',team:'Egypt'},
+    {name:'Riyad Mahrez',team:'Algeria'},{name:'Said Benrahma',team:'Algeria'},
+    {name:'Wahbi Khazri',team:'Tunisia'},{name:'Hannibal Mejbri',team:'Tunisia'},
+    {name:'Arda Güler',team:'Turkey'},{name:'Kenan Yıldız',team:'Turkey'},
+    {name:'Edin Džeko',team:'Bosnia and Herzegovina'},
+    {name:'Ermedin Demirović',team:'Bosnia and Herzegovina'},
+    {name:'Pedro de la Vega',team:'Panama'},
+    {name:'Adama Traoré',team:'Ivory Coast'},{name:'Sébastien Haller',team:'Ivory Coast'},
+    {name:'Jordan Ayew',team:'Ghana'},{name:'Mohammed Kudus',team:'Ghana'},
+  ],
+  mvp: [
+    {name:'Kylian Mbappé',team:'France'},{name:'Vinicius Jr',team:'Brazil'},
+    {name:'Jude Bellingham',team:'England'},{name:'Lamine Yamal',team:'Spain'},
+    {name:'Pedri',team:'Spain'},{name:'Rodri',team:'Spain'},
+    {name:'Lionel Messi',team:'Argentina'},{name:'Alexis Mac Allister',team:'Argentina'},
+    {name:'Enzo Fernández',team:'Argentina'},{name:'Cristiano Ronaldo',team:'Portugal'},
+    {name:'Bruno Fernandes',team:'Portugal'},{name:'Bernardo Silva',team:'Portugal'},
+    {name:'Erling Haaland',team:'Norway'},{name:'Florian Wirtz',team:'Germany'},
+    {name:'Jamal Musiala',team:'Germany'},{name:'Joshua Kimmich',team:'Germany'},
+    {name:'Kevin De Bruyne',team:'Belgium'},{name:'Antoine Griezmann',team:'France'},
+    {name:'Ousmane Dembélé',team:'France'},{name:'Aurélien Tchouaméni',team:'France'},
+    {name:'Harry Kane',team:'England'},{name:'Bukayo Saka',team:'England'},
+    {name:'Declan Rice',team:'England'},{name:'Trent Alexander-Arnold',team:'England'},
+    {name:'Raphinha',team:'Brazil'},{name:'Rodrygo',team:'Brazil'},
+    {name:'Federico Valverde',team:'Uruguay'},
+  ],
+  best_goalkeeper: [
+    {name:'Alisson',team:'Brazil'},{name:'Éderson',team:'Brazil'},
+    {name:'Manuel Neuer',team:'Germany'},{name:'Marc-André ter Stegen',team:'Germany'},
+    {name:'David Raya',team:'Spain'},{name:'Unai Simón',team:'Spain'},
+    {name:'Mike Maignan',team:'France'},{name:'Alphonse Areola',team:'France'},
+    {name:'Jordan Pickford',team:'England'},{name:'Dean Henderson',team:'England'},
+    {name:'Diogo Costa',team:'Portugal'},{name:'Rui Patrício',team:'Portugal'},
+    {name:'Emiliano Martínez',team:'Argentina'},{name:'Geronimo Rulli',team:'Argentina'},
+    {name:'Bart Verbruggen',team:'Netherlands'},{name:'Mark Flekken',team:'Netherlands'},
+    {name:'Gregor Kobel',team:'Switzerland'},{name:'Yann Sommer',team:'Switzerland'},
+    {name:'Bono',team:'Morocco'},{name:'Edouard Mendy',team:'Senegal'},
+    {name:'Alireza Beiranvand',team:'Iran'},{name:'Mathew Ryan',team:'Australia'},
+    {name:'Guillermo Ochoa',team:'Mexico'},{name:'Matt Turner',team:'USA'},
+    {name:'Maxime Crépeau',team:'Canada'},
+  ],
+};
+AWARD_PLAYERS.best_player = AWARD_PLAYERS.mvp;
+
 // ─── GROUP STANDINGS ─────────────────────────────────────────────────────────
 function computeAllStandings(matches) {
   const groups = {};
@@ -194,6 +282,15 @@ const LANGS = {
     lb_me_pin:'TÚ',
     lb_jump_to_me:'↓ Mi posición #',
     lb_showing_only:'Mostrando solo',
+    award_section_title: 'Premios del Torneo',
+    award_locked:        'Premios cerrados al inicio del torneo',
+    award_pick_team:     '— Elige equipo —',
+    award_pick_player:   '— Elige jugador —',
+    award_saved:         '✅',
+    award_bonus_label:   '+{n} premios',
+    admin_awards_title:  'Ganadores de Premios',
+    admin_awards_save:   'Guardar',
+    admin_awards_saved:  'Guardado ✓',
   },
   en: {
     nav_home:'Home', nav_predict:'Predictions', nav_results:'Results',
@@ -260,6 +357,15 @@ const LANGS = {
     lb_me_pin:'YOU',
     lb_jump_to_me:'↓ My position #',
     lb_showing_only:'Showing only',
+    award_section_title: 'Tournament Awards',
+    award_locked:        'Awards locked at tournament start',
+    award_pick_team:     '— Pick team —',
+    award_pick_player:   '— Pick player —',
+    award_saved:         '✅',
+    award_bonus_label:   '+{n} awards',
+    admin_awards_title:  'Award Winners',
+    admin_awards_save:   'Save',
+    admin_awards_saved:  'Saved ✓',
   },
   pt: {
     nav_home:'Início', nav_predict:'Palpites', nav_results:'Resultados',
@@ -326,6 +432,15 @@ const LANGS = {
     lb_me_pin:'VOCÊ',
     lb_jump_to_me:'↓ Minha posição #',
     lb_showing_only:'Mostrando apenas',
+    award_section_title: 'Prêmios do Torneio',
+    award_locked:        'Prêmios encerrados no início do torneio',
+    award_pick_team:     '— Escolha o time —',
+    award_pick_player:   '— Escolha o jogador —',
+    award_saved:         '✅',
+    award_bonus_label:   '+{n} prêmios',
+    admin_awards_title:  'Vencedores dos Prêmios',
+    admin_awards_save:   'Salvar',
+    admin_awards_saved:  'Salvo ✓',
   },
 };
 
