@@ -2399,8 +2399,9 @@ function Avatar({ src, name, size=36, userId }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // ATOM: LB ROW v2 (PR-A §5)
 // ─────────────────────────────────────────────────────────────────────────────
-function LbRow({ t, row, rank, isMe, id }) {
+function LbRow({ t, row, rank, isMe, id, totalPts, awardBonus }) {
   const total = (row.pts_exact||0) + (row.pts_result||0) + (row.pts_goals||0);
+  const displayPts = totalPts !== undefined ? totalPts : row.total_pts;
   const segs = total > 0 ? [
     { v: row.pts_exact,  c: 'var(--gold)' },
     { v: row.pts_result, c: 'var(--green)' },
@@ -2426,8 +2427,11 @@ function LbRow({ t, row, rank, isMe, id }) {
         )}
       </div>
       <div className="lb-row-pts">
-        <div className="lb-row-pts-val">{row.total_pts}</div>
+        <div className="lb-row-pts-val">{displayPts}</div>
         <div className="lb-row-pts-sub">{t.pts||'pts'}</div>
+        {awardBonus > 0 && (
+          <div style={{fontSize:10,color:'var(--gold)',lineHeight:1,marginTop:2}}>+{awardBonus}🏆</div>
+        )}
       </div>
     </div>
   );
@@ -2480,7 +2484,7 @@ function JumpToMeFab({ t, user, leaderboard }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: LEADERBOARD
 // ─────────────────────────────────────────────────────────────────────────────
-function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, matches }) {
+function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, matches, awardPreds, awardWinners }) {
   const [filter,           setFilter]           = useState({ mode:'general' });
   const [filteredData,     setFilteredData]     = useState(null);
   const [filterLoading,    setFilterLoading]    = useState(false);
@@ -2504,8 +2508,16 @@ function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, match
   const n           = leaderboard.length;
   const totalPool   = leaderboardProp.length * PRIZE_PER_HEAD; // always full pool
 
-  const top3        = leaderboard.slice(0,3);
-  const rest        = leaderboard.slice(3);
+  const hasAwardWinners = (awardWinners||[]).some(w => w.value != null);
+  const getTotal = (row) => (row.total_pts || 0) + (hasAwardWinners ? calcAwardBonus(row.user_id, awardPreds||[], awardWinners||[]) : 0);
+  const getBonus = (row) => hasAwardWinners ? calcAwardBonus(row.user_id, awardPreds||[], awardWinners||[]) : 0;
+
+  const sortedLeaderboard = hasAwardWinners
+    ? [...leaderboard].sort((a,b) => getTotal(b) - getTotal(a))
+    : leaderboard;
+
+  const top3        = sortedLeaderboard.slice(0,3);
+  const rest        = sortedLeaderboard.slice(3);
   const podiumOrder = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3;
   const podiumColors  = ['#c0c0c0', '#F5B731', '#cd7f32'];
   const podiumHeights = [80, 110, 66];
@@ -2592,7 +2604,7 @@ function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, match
                     {isMe && <div className="podium-me-pin">{t.lb_me_pin||'TÚ'}</div>}
                     <div className="podium-name">{row.display_name?.split(' ')[0]}</div>
                     <div className="podium-pts" style={{color:clr}}>
-                      {row.total_pts}<span style={{fontSize:9,color:'var(--mut)',marginLeft:2}}>pts</span>
+                      {getTotal(row)}<span style={{fontSize:9,color:'var(--mut)',marginLeft:2}}>pts</span>
                     </div>
                     <div className="podium-bar" style={{
                       height:h,
@@ -2622,9 +2634,11 @@ function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, match
             {rest.map((row,i) => {
               const rank = i+4;
               const isMe = user?.id === row.user_id;
+              const bonus = getBonus(row);
               return (
                 <LbRow key={row.user_id} t={t} row={row} rank={rank} isMe={isMe}
-                  id={isMe ? 'lb-me-row' : undefined}/>
+                  id={isMe ? 'lb-me-row' : undefined}
+                  totalPts={getTotal(row)} awardBonus={bonus}/>
               );
             })}
           </div>
