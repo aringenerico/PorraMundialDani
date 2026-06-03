@@ -1988,6 +1988,16 @@ function PredictionsPage({ t, user, matches, predictions, onSave, onGoAuth, onOp
         </div>
       </div>
 
+      {/* Award predictions section — shown above matches so it's easy to find */}
+      {view === 'predict' && (
+        <AwardSection
+          t={t} user={user}
+          awardPreds={awardPreds} awardWinners={awardWinners}
+          awardsOpen={awardsOpen}
+          onGoAuth={onGoAuth}
+        />
+      )}
+
       {/* Match list */}
       <div style={{padding:'4px 0 0'}}>
         {Object.entries(matchdayGroups).map(([md, mdMatches]) => {
@@ -2024,16 +2034,6 @@ function PredictionsPage({ t, user, matches, predictions, onSave, onGoAuth, onOp
           );
         })}
       </div>
-
-      {/* Award predictions section */}
-      {view === 'predict' && (
-        <AwardSection
-          t={t} user={user}
-          awardPreds={awardPreds} awardWinners={awardWinners}
-          awardsOpen={awardsOpen}
-          onGoAuth={onGoAuth}
-        />
-      )}
 
       {/* Sticky save bar */}
       {view === 'predict' && (
