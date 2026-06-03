@@ -1736,10 +1736,131 @@ function MatchCard({ t, match: m, pred, open, view, pts, stateClass, onChangePre
   );
 }
 
+// ─── AWARD HELPERS + COMPONENTS ──────────────────────────────────────────────
+function calcAwardBonus(userId, awardPreds, awardWinners) {
+  return awardWinners
+    .filter(w => w.value != null)
+    .reduce((sum, w) => {
+      const pred = awardPreds.find(p => p.user_id === userId && p.category === w.category);
+      return sum + (pred?.value === w.value ? AWARD_BONUS : 0);
+    }, 0);
+}
+
+function AwardSection({ t, user, awardPreds, awardWinners, awardsOpen, onGoAuth }) {
+  const [localPreds, setLocalPreds] = useState(() => {
+    const m = {};
+    (awardPreds || []).filter(p => p.user_id === user?.id).forEach(p => { m[p.category] = p.value; });
+    return m;
+  });
+  const [flash, setFlash] = useState({});
+
+  useEffect(() => {
+    const m = {};
+    (awardPreds || []).filter(p => p.user_id === user?.id).forEach(p => { m[p.category] = p.value; });
+    setLocalPreds(m);
+  }, [awardPreds, user]);
+
+  const handleChange = async (category, value) => {
+    if (!value) return;
+    setLocalPreds(prev => ({ ...prev, [category]: value }));
+    const { error } = await supabase.from('award_predictions')
+      .upsert({ user_id: user.id, category, value }, { onConflict: 'user_id,category' });
+    if (!error) {
+      setFlash(f => ({ ...f, [category]: true }));
+      setTimeout(() => setFlash(f => ({ ...f, [category]: false })), 1200);
+    }
+  };
+
+  const winners = {};
+  (awardWinners || []).forEach(w => { winners[w.category] = w.value; });
+  const hasWinners = (awardWinners || []).some(w => w.value != null);
+
+  if (!user) return (
+    <div style={{padding:'16px', textAlign:'center', marginTop:8}}>
+      <p style={{color:'var(--mut)', fontSize:13, marginBottom:10}}>{t.login_required}</p>
+      <button className="btn-acc btn-sm" onClick={onGoAuth}>{t.auth_login} / {t.auth_register}</button>
+    </div>
+  );
+
+  return (
+    <div style={{padding:'8px 16px 16px'}}>
+      <div style={{fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'.08em',
+                   color:'var(--mut)', marginBottom:10, display:'flex', alignItems:'center', gap:6,
+                   paddingTop:8, borderTop:'2px solid var(--line)'}}>
+        <Icon name="trophy" size={14} color="var(--gold)" stroke={2}/>
+        {t.award_section_title}
+        {!awardsOpen && (
+          <span style={{marginLeft:'auto', fontSize:11, fontWeight:500, color:'var(--coral)'}}>
+            <Icon name="lock" size={12} color="var(--coral)" stroke={2}/> {t.award_locked}
+          </span>
+        )}
+      </div>
+
+      {AWARD_CONFIG.map(({ key, label, icon, type }) => {
+        const myPred    = localPreds[key] || '';
+        const winner    = winners[key];
+        const isCorrect = hasWinners && winner != null && myPred === winner;
+        const isWrong   = hasWinners && winner != null && myPred && myPred !== winner;
+
+        return (
+          <div key={key} style={{
+            display:'flex', alignItems:'center', gap:10, padding:'9px 0',
+            borderBottom:'1px solid var(--line)',
+          }}>
+            <Icon name={icon} size={16} color="var(--gold)" stroke={2}/>
+            <div style={{flex:1, fontSize:13, fontWeight:600}}>{label}</div>
+
+            {awardsOpen ? (
+              <div style={{display:'flex', alignItems:'center', gap:6}}>
+                <select
+                  value={myPred}
+                  onChange={e => handleChange(key, e.target.value)}
+                  style={{
+                    fontSize:12, padding:'5px 8px', borderRadius:8,
+                    background:'var(--surface)', border:'1px solid var(--line)',
+                    color: myPred ? 'var(--txt)' : 'var(--mut)', cursor:'pointer',
+                    maxWidth:170,
+                  }}
+                >
+                  <option value="">{type === 'team' ? t.award_pick_team : t.award_pick_player}</option>
+                  {type === 'player'
+                    ? (AWARD_PLAYERS[key] || []).map(p => (
+                        <option key={p.name} value={p.name}>{flag(p.team)} {p.name}</option>
+                      ))
+                    : AWARD_TEAMS.map(tm => (
+                        <option key={tm} value={tm}>{flag(tm)} {tm}</option>
+                      ))
+                  }
+                </select>
+                {flash[key] && <span style={{fontSize:14}}>{t.award_saved}</span>}
+              </div>
+            ) : (
+              <div style={{
+                fontSize:12,
+                color: isCorrect ? 'var(--green)' : isWrong ? 'var(--coral)' : 'var(--mut)',
+                display:'flex', alignItems:'center', gap:4, textAlign:'right',
+              }}>
+                {myPred ? (
+                  <>
+                    {type === 'team' ? `${flag(myPred)} ` : ''}{myPred}
+                    {isCorrect && ' ✅'}
+                    {isWrong && <span style={{color:'var(--mut)', fontSize:11}}> (Ganador: {winner})</span>}
+                  </>
+                ) : '—'}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: PREDICTIONS (+ Results toggle)
 // ─────────────────────────────────────────────────────────────────────────────
-function PredictionsPage({ t, user, matches, predictions, onSave, onGoAuth, onOpenDetail }) {
+function PredictionsPage({ t, user, matches, predictions, onSave, onGoAuth, onOpenDetail,
+                           awardPreds, awardWinners, awardsOpen }) {
   // ── All hooks BEFORE any conditional return ──────────────────────────────
   const [localPreds, setLocalPreds] = useState({});
   const [dirtyIds,   setDirtyIds]   = useState(new Set());
@@ -1886,6 +2007,16 @@ function PredictionsPage({ t, user, matches, predictions, onSave, onGoAuth, onOp
           );
         })}
       </div>
+
+      {/* Award predictions section */}
+      {view === 'predict' && (
+        <AwardSection
+          t={t} user={user}
+          awardPreds={awardPreds} awardWinners={awardWinners}
+          awardsOpen={awardsOpen}
+          onGoAuth={onGoAuth}
+        />
+      )}
 
       {/* Sticky save bar */}
       {view === 'predict' && (
