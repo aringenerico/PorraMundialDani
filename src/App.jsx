@@ -1060,6 +1060,10 @@ const ICON_PATHS = {
   clock:   'M12 22a10 10 0 100-20 10 10 0 000 20z M12 6v6l4 2',
   arrowR:  'M5 12h14 M12 5l7 7-7 7',
   lock:    'M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z M7 11V7a5 5 0 0110 0v4',
+  boot:    'M4 7h7v6l8 1a1 1 0 0 1 1 1v3H4z M4 14h7',
+  star:    'M12 3l2.7 5.5 6 .9-4.3 4.2 1 6L12 16.8 6.5 19.6l1-6L3.2 9.4l6-.9z',
+  glove:   'M7 11V6a2 2 0 0 1 4 0v4M11 10V5a2 2 0 0 1 4 0v6M15 11V7a2 2 0 0 1 3 0v7a6 6 0 0 1-6 6H10a5 5 0 0 1-5-5v-2a2 2 0 0 1 2-2z',
+  medal:   'M12 8a6 6 0 100 12 6 6 0 000-12z M9 8L6 2h4l2 4 M15 8l3-6h-4l-2 4',
 };
 function Icon({ name, size=20, color='currentColor', stroke=1.8 }) {
   return (
