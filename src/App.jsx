@@ -3229,46 +3229,6 @@ function BracketPage({ t, matches, predictions = [], user }) {
         </div>
       )}
 
-      {/* AWARD WINNERS */}
-      <div style={{padding:'0 16px 16px'}}>
-        <div className="card" style={{padding:'12px 16px',marginTop:12}}>
-          <div style={{fontWeight:700,fontSize:14,marginBottom:12,display:'flex',alignItems:'center',gap:6}}>
-            <Icon name="trophy" size={16} color="var(--gold)" stroke={2}/>
-            {t.admin_awards_title}
-          </div>
-          {AWARD_CONFIG.map(({ key, label, icon, type }) => (
-            <div key={key} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',
-                                    borderBottom:'1px solid var(--line)'}}>
-              <Icon name={icon} size={14} color="var(--gold)" stroke={2}/>
-              <div style={{flex:1,fontSize:13,fontWeight:600}}>{label}</div>
-              <select
-                value={adminAwards[key] || ''}
-                onChange={e => setAdminAwards(a => ({...a,[key]:e.target.value}))}
-                style={{fontSize:12,padding:'4px 8px',borderRadius:6,
-                        background:'var(--surface)',border:'1px solid var(--line)',
-                        color: adminAwards[key] ? 'var(--txt)' : 'var(--mut)', maxWidth:160}}
-              >
-                <option value="">{type==='team' ? t.award_pick_team : t.award_pick_player}</option>
-                {type === 'player'
-                  ? (AWARD_PLAYERS[key] || []).map(p => (
-                      <option key={p.name} value={p.name}>{flag(p.team)} {p.name}</option>
-                    ))
-                  : AWARD_TEAMS.map(tm => (
-                      <option key={tm} value={tm}>{flag(tm)} {tm}</option>
-                    ))
-                }
-              </select>
-              <button
-                className="btn-acc btn-sm"
-                onClick={() => saveAward(key)}
-                style={{minWidth:64,fontSize:11}}
-              >
-                {awardSaved[key] === 'ok' ? t.admin_awards_saved : t.admin_awards_save}
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -3635,6 +3595,47 @@ function AdminPage({ t, matches, onMatchUpdated, awardWinners, onAwardWinnersCha
                   </span>
                 )}
               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* AWARD WINNERS */}
+      <div style={{padding:'0 16px 16px'}}>
+        <div className="card" style={{padding:'12px 16px',marginTop:12}}>
+          <div style={{fontWeight:700,fontSize:14,marginBottom:12,display:'flex',alignItems:'center',gap:6}}>
+            <Icon name="trophy" size={16} color="var(--gold)" stroke={2}/>
+            {t.admin_awards_title}
+          </div>
+          {AWARD_CONFIG.map(({ key, label, icon, type }) => (
+            <div key={key} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',
+                                    borderBottom:'1px solid var(--line)'}}>
+              <Icon name={icon} size={14} color="var(--gold)" stroke={2}/>
+              <div style={{flex:1,fontSize:13,fontWeight:600}}>{label}</div>
+              <select
+                value={adminAwards[key] || ''}
+                onChange={e => setAdminAwards(a => ({...a,[key]:e.target.value}))}
+                style={{fontSize:12,padding:'4px 8px',borderRadius:6,
+                        background:'var(--surface)',border:'1px solid var(--line)',
+                        color: adminAwards[key] ? 'var(--txt)' : 'var(--mut)', maxWidth:160}}
+              >
+                <option value="">{type==='team' ? t.award_pick_team : t.award_pick_player}</option>
+                {type === 'player'
+                  ? (AWARD_PLAYERS[key] || []).map(p => (
+                      <option key={p.name} value={p.name}>{flag(p.team)} {p.name}</option>
+                    ))
+                  : AWARD_TEAMS.map(tm => (
+                      <option key={tm} value={tm}>{flag(tm)} {tm}</option>
+                    ))
+                }
+              </select>
+              <button
+                className="btn-acc btn-sm"
+                onClick={() => saveAward(key)}
+                style={{minWidth:64,fontSize:11}}
+              >
+                {awardSaved[key] === 'ok' ? t.admin_awards_saved : t.admin_awards_save}
+              </button>
             </div>
           ))}
         </div>
