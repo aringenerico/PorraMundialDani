@@ -1300,7 +1300,7 @@ function VerifyScreen({ t, email }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: HOME
 // ─────────────────────────────────────────────────────────────────────────────
-function HomePage({ t, user, matches, predictions, leaderboard, onGoAuth, onTabChange }) {
+function HomePage({ t, user, matches, predictions, leaderboard, onGoAuth, onTabChange, awardPreds, awardWinners }) {
   // Next deadline
   const nextDeadline = useMemo(() => {
     const upcoming = matches
@@ -1326,13 +1326,23 @@ function HomePage({ t, user, matches, predictions, leaderboard, onGoAuth, onTabC
     return idx >= 0 ? { rank: idx+1, ...leaderboard[idx] } : null;
   }, [user, leaderboard]);
 
+  // Award bonus for my row
+  const myAwardBonus = useMemo(() => {
+    if (!myRow || !user) return 0;
+    return calcAwardBonus(user.id, awardPreds||[], awardWinners||[]);
+  }, [myRow, user, awardPreds, awardWinners]);
+
+  const myTotalPts = myRow ? (myRow.total_pts || 0) + myAwardBonus : 0;
+
   // Gap to leader
   const gapToLeader = useMemo(() => {
     if (!myRow || !leaderboard.length) return null;
     const leader = leaderboard[0];
     if (leader.user_id === user?.id) return null; // I am the leader
-    return Math.round((leader.total_pts - myRow.total_pts) * 10) / 10;
-  }, [myRow, leaderboard, user]);
+    const leaderBonus = calcAwardBonus(leader.user_id, awardPreds||[], awardWinners||[]);
+    return Math.round(((leader.total_pts + leaderBonus) - myTotalPts) * 10) / 10;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myRow, leaderboard, user, awardPreds, awardWinners, myTotalPts]);
 
   // Streak
   const streak = useMemo(() =>
@@ -1454,8 +1464,11 @@ function HomePage({ t, user, matches, predictions, leaderboard, onGoAuth, onTabC
                 }}>{myRow.rank}º</div>
                 <div style={{flex:1}}>
                   <div style={{fontFamily:'JetBrains Mono,monospace',fontSize:26,fontWeight:700,lineHeight:1,color:'var(--txt)'}}>
-                    {myRow.total_pts}
+                    {myTotalPts}
                     <span style={{fontSize:12,color:'var(--mut)',marginLeft:5,fontWeight:500}}>pts</span>
+                    {myAwardBonus > 0 && (
+                      <span style={{fontSize:11,color:'var(--gold)',marginLeft:4,fontWeight:600}}>+{myAwardBonus}🏆</span>
+                    )}
                   </div>
                   {gapToLeader !== null && (
                     <div style={{fontSize:11,color:'var(--coral)',marginTop:4,fontWeight:700}}>
