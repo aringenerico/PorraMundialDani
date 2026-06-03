@@ -2731,10 +2731,233 @@ function JumpToMeFab({ t, user, leaderboard }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: LEADERBOARD
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// MODAL: USER DETAIL (clicked from leaderboard) — predictions + breakdown + awards
+// ─────────────────────────────────────────────────────────────────────────────
+function UserDetailModal({ t, row, rank, matches, awardPreds, awardWinners, onClose }) {
+  const [preds, setPreds] = useState(null);
+  const [loadingP, setLoadingP] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingP(true);
+    supabase.from('predictions').select('*').eq('user_id', row.user_id).then(({ data }) => {
+      if (!cancelled) { setPreds(data || []); setLoadingP(false); }
+    });
+    return () => { cancelled = true; };
+  }, [row.user_id]);
+
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  const awardBonus = calcAwardBonus(row.user_id, awardPreds || [], awardWinners || []);
+  const totalPts = (row.total_pts || 0) + awardBonus;
+  const userAwardPreds = (awardPreds || []).filter(p => p.user_id === row.user_id);
+  const winnersMap = {};
+  (awardWinners || []).forEach(w => { winnersMap[w.category] = w.value; });
+  const hasWinners = (awardWinners || []).some(w => w.value != null);
+
+  // Group matches by phase + matchday
+  const finishedMatches = matches.filter(m => m.status === 'finished' && m.home_goals != null);
+  const otherMatches    = matches.filter(m => !(m.status === 'finished' && m.home_goals != null));
+  const sortedMatches = [
+    ...finishedMatches.sort((a,b) => new Date(b.match_date) - new Date(a.match_date)),
+    ...otherMatches.sort((a,b) => new Date(a.match_date) - new Date(b.match_date)),
+  ];
+
+  const findPred = (mid) => (preds || []).find(p => p.match_id === mid);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position:'fixed', inset:0, zIndex:200,
+        background:'rgba(0,0,0,.65)', backdropFilter:'blur(4px)',
+        display:'flex', alignItems:'flex-start', justifyContent:'center',
+        padding:'4vh 12px', overflowY:'auto',
+      }}>
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width:'100%', maxWidth:560, background:'var(--bg-deep)',
+          borderRadius:14, border:'1px solid var(--line)',
+          boxShadow:'0 20px 60px rgba(0,0,0,.6)', overflow:'hidden',
+        }}>
+        {/* Header */}
+        <div style={{padding:0,position:'relative'}}>
+          <div style={{height:54, background:'linear-gradient(135deg,var(--gold),var(--coral))'}}/>
+          <button onClick={onClose} aria-label="Cerrar"
+            style={{
+              position:'absolute', top:8, right:8,
+              width:32, height:32, borderRadius:16,
+              background:'rgba(0,0,0,.4)', border:'1px solid rgba(255,255,255,.2)',
+              color:'#fff', fontSize:18, cursor:'pointer', lineHeight:1,
+            }}>×</button>
+          <div style={{padding:'0 16px 14px', marginTop:-28, display:'flex', gap:12, alignItems:'flex-end'}}>
+            <Avatar src={row.avatar_url} name={row.display_name} size={56} userId={row.user_id}/>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:18, fontWeight:800, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                {row.display_name || 'Anónimo'}
+              </div>
+              <div style={{fontSize:11, color:'var(--mut)', marginTop:2,
+                letterSpacing:'.1em', textTransform:'uppercase'}}>
+                Posición · {rank}º
+              </div>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontFamily:'JetBrains Mono,monospace',fontSize:26,fontWeight:700,
+                color:'var(--gold)',lineHeight:1}}>{totalPts}</div>
+              <div style={{fontSize:9,color:'var(--mut)',marginTop:2,letterSpacing:'.1em',
+                textTransform:'uppercase'}}>PUNTOS</div>
+            </div>
+          </div>
+        </div>
+
+        {/* SCORING BREAKDOWN */}
+        <div style={{padding:'8px 16px 4px'}}>
+          <div style={{fontWeight:700, fontSize:11, textTransform:'uppercase', letterSpacing:'.1em',
+            color:'var(--mut)', marginBottom:8, paddingLeft:6, borderLeft:'3px solid var(--gold)'}}>
+            Desglose de puntos
+          </div>
+          <div className="card" style={{padding:'12px 14px'}}>
+            {[
+              {lbl:'Goles acertados', val:row.pts_goals||0,  color:'var(--sky)'},
+              {lbl:'Resultados',      val:row.pts_result||0, color:'var(--green)'},
+              {lbl:'Exactos (bonus)', val:row.pts_exact||0,  color:'var(--gold)'},
+              ...(hasWinners ? [{lbl:'Premios',           val:awardBonus,        color:'var(--coral)'}] : []),
+            ].map((r,i,arr) => {
+              const pct = totalPts > 0 ? r.val / totalPts : 0;
+              return (
+                <div key={i} style={{display:'flex',alignItems:'center',gap:10,marginBottom:i<arr.length-1?10:0}}>
+                  <div style={{fontSize:12,color:'var(--txt)',width:118}}>{r.lbl}</div>
+                  <div style={{flex:1,height:6,background:'var(--surface2)',borderRadius:99,overflow:'hidden'}}>
+                    <div style={{width:`${pct*100}%`,height:'100%',background:r.color,borderRadius:99}}/>
+                  </div>
+                  <div style={{fontFamily:'JetBrains Mono,monospace',fontSize:13,fontWeight:700,
+                    color:'var(--txt)',width:32,textAlign:'right'}}>{r.val}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* AWARD PREDICTIONS */}
+        <div style={{padding:'12px 16px 4px'}}>
+          <div style={{fontWeight:700, fontSize:11, textTransform:'uppercase', letterSpacing:'.1em',
+            color:'var(--mut)', marginBottom:8, paddingLeft:6, borderLeft:'3px solid var(--gold)',
+            display:'flex', alignItems:'center', gap:6}}>
+            <Icon name="trophy" size={11} color="var(--gold)" stroke={2}/>
+            Premios
+          </div>
+          <div className="card" style={{padding:'4px 14px'}}>
+            {AWARD_CONFIG.map(({key, label, icon, type}) => {
+              const pred = userAwardPreds.find(p => p.category === key)?.value;
+              const winner = winnersMap[key];
+              const isCorrect = hasWinners && winner != null && pred === winner;
+              const isWrong   = hasWinners && winner != null && pred && pred !== winner;
+              return (
+                <div key={key} style={{display:'flex',alignItems:'center',gap:8,
+                  padding:'8px 0', borderBottom:'1px solid var(--line)'}}>
+                  <Icon name={icon} size={14} color="var(--gold)" stroke={2}/>
+                  <div style={{flex:1,fontSize:12,fontWeight:600}}>{label}</div>
+                  <div style={{fontSize:12, textAlign:'right',
+                    color: isCorrect ? 'var(--green)' : isWrong ? 'var(--coral)' : 'var(--mut)'}}>
+                    {pred ? (
+                      <>
+                        {type === 'team' ? `${flag(pred)} ` : ''}{pred}
+                        {isCorrect && ' ✅'}
+                      </>
+                    ) : (
+                      <span style={{fontStyle:'italic'}}>—</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* MATCH PREDICTIONS */}
+        <div style={{padding:'12px 16px 18px'}}>
+          <div style={{fontWeight:700, fontSize:11, textTransform:'uppercase', letterSpacing:'.1em',
+            color:'var(--mut)', marginBottom:8, paddingLeft:6, borderLeft:'3px solid var(--gold)'}}>
+            Pronósticos de partidos
+          </div>
+          {loadingP ? (
+            <div style={{padding:'20px 0', textAlign:'center', color:'var(--mut)', fontSize:13}}>
+              Cargando…
+            </div>
+          ) : (
+            <div className="card" style={{padding:'4px 14px'}}>
+              {sortedMatches.map(m => {
+                const p = findPred(m.id);
+                const isFinished = m.status === 'finished' && m.home_goals != null;
+                const pts = isFinished && p
+                  ? calcScore(p.home_goals, p.away_goals, m.home_goals, m.away_goals)
+                  : null;
+                const ptsColor = pts === 3 ? 'var(--gold)' : pts === 1 ? 'var(--green)' : pts > 0 ? 'var(--sky)' : 'var(--mut)';
+                return (
+                  <div key={m.id} style={{
+                    display:'flex',alignItems:'center',gap:6,
+                    padding:'7px 0', borderBottom:'1px solid var(--line)', fontSize:12,
+                  }}>
+                    <div style={{minWidth:28, fontSize:10, color:'var(--mut)', fontFamily:'JetBrains Mono,monospace'}}>
+                      P{m.match_number}
+                    </div>
+                    <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:2}}>
+                      <div style={{display:'flex',alignItems:'center',gap:5,overflow:'hidden'}}>
+                        <FlagChip team={m.home_team} size={12}/>
+                        <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          {m.home_team || '?'}
+                        </span>
+                        <span style={{color:'var(--mut)',margin:'0 3px'}}>vs</span>
+                        <FlagChip team={m.away_team} size={12}/>
+                        <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          {m.away_team || '?'}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{fontFamily:'JetBrains Mono,monospace',fontSize:12,
+                      color: p ? 'var(--txt)' : 'var(--mut)', minWidth:38, textAlign:'right'}}>
+                      {p ? `${p.home_goals}–${p.away_goals}` : '—'}
+                    </div>
+                    {isFinished && (
+                      <div style={{fontFamily:'JetBrains Mono,monospace',fontSize:11,
+                        color:'var(--mut)', minWidth:38, textAlign:'right'}}>
+                        ({m.home_goals}–{m.away_goals})
+                      </div>
+                    )}
+                    {pts !== null && (
+                      <div style={{fontFamily:'JetBrains Mono,monospace',fontSize:11,fontWeight:700,
+                        color:ptsColor, minWidth:32, textAlign:'right'}}>
+                        +{pts}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {sortedMatches.length === 0 && (
+                <div style={{padding:'14px 0', textAlign:'center', color:'var(--mut)', fontSize:12}}>
+                  Sin partidos
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, matches, awardPreds, awardWinners }) {
   const [filter,           setFilter]           = useState({ mode:'general' });
   const [filteredData,     setFilteredData]     = useState(null);
   const [filterLoading,    setFilterLoading]    = useState(false);
+  const [detailRow,        setDetailRow]        = useState(null); // { row, rank } when modal open
 
   useEffect(() => {
     if (filter.mode === 'general') { setFilteredData(null); return; }
@@ -2842,7 +3065,9 @@ function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, match
                 const isMe = user?.id === row.user_id;
                 return (
                   <div key={row.user_id} className="podium-item"
-                    style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
+                    onClick={() => setDetailRow({ row, rank: origRank })}
+                    style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5,
+                            cursor:'pointer'}}>
                     {origRank === 1 && (
                       <div className="podium-crown"><CrownSVG color={clr}/></div>
                     )}
@@ -2883,9 +3108,12 @@ function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, match
               const isMe = user?.id === row.user_id;
               const bonus = getBonus(row);
               return (
-                <LbRow key={row.user_id} t={t} row={row} rank={rank} isMe={isMe}
-                  id={isMe ? 'lb-me-row' : undefined}
-                  totalPts={getTotal(row)} awardBonus={bonus}/>
+                <div key={row.user_id} onClick={() => setDetailRow({ row, rank })}
+                     style={{cursor:'pointer'}}>
+                  <LbRow t={t} row={row} rank={rank} isMe={isMe}
+                    id={isMe ? 'lb-me-row' : undefined}
+                    totalPts={getTotal(row)} awardBonus={bonus}/>
+                </div>
               );
             })}
           </div>
@@ -2898,6 +3126,13 @@ function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, match
 
       {/* JUMP FAB */}
       <JumpToMeFab t={t} user={user} leaderboard={leaderboard}/>
+
+      {/* DETAIL MODAL */}
+      {detailRow && (
+        <UserDetailModal t={t} row={detailRow.row} rank={detailRow.rank}
+          matches={matches} awardPreds={awardPreds} awardWinners={awardWinners}
+          onClose={() => setDetailRow(null)}/>
+      )}
     </div>
   );
 }
