@@ -3628,6 +3628,8 @@ function App() {
   const [adminMode, setAdmin]       = useState(false);
   const [adminBuf, setAdminBuf]     = useState('');
   const [detailMatchId, setDetailMatchId] = useState(null);
+  const [awardPreds,   setAwardPreds]   = useState([]);
+  const [awardWinners, setAwardWinners] = useState([]);
 
   const t = LANGS[lang];
 
@@ -3663,9 +3665,19 @@ function App() {
     setLbLoading(false);
   },[]);
 
+  const loadAwards = useCallback(async () => {
+    const [{ data: preds }, { data: winners }] = await Promise.all([
+      supabase.from('award_predictions').select('*'),
+      supabase.from('award_winners').select('*'),
+    ]);
+    setAwardPreds(preds || []);
+    setAwardWinners(winners || []);
+  }, []);
+
   useEffect(()=>{ loadMatches(); },[loadMatches]);
   useEffect(()=>{ loadPredictions(); },[loadPredictions]);
   useEffect(()=>{ loadLeaderboard(); },[loadLeaderboard]);
+  useEffect(()=>{ loadAwards(); },[loadAwards]);
 
   const signOut = async()=>{ await supabase.auth.signOut(); setTab('home'); };
 
@@ -3693,7 +3705,12 @@ function App() {
     return idx>=0 ? idx+1 : null;
   },[user,leaderboard]);
 
-  const onRefresh = ()=>{ loadMatches(); loadPredictions(); loadLeaderboard(); };
+  const firstMatchDeadline = matches.length > 0
+    ? matches.reduce((min, m) => m.deadline && (!min || m.deadline < min) ? m.deadline : min, null)
+    : null;
+  const awardsOpen = firstMatchDeadline ? isBeforeDeadline(firstMatchDeadline) : true;
+
+  const onRefresh = ()=>{ loadMatches(); loadPredictions(); loadLeaderboard(); loadAwards(); };
 
   if (authLoading) return <><style>{CSS}</style><Spinner/></>;
 
@@ -3772,21 +3789,25 @@ function App() {
 
       {/* PAGES */}
       {tab==='home'    && <HomePage    t={t} user={user} matches={matches} leaderboard={leaderboard}
-                            predictions={predictions}
+                            predictions={predictions} awardPreds={awardPreds} awardWinners={awardWinners}
                             onGoAuth={()=>setTab('auth')} onTabChange={setTab}/>}
       {tab==='auth'    && <AuthPage    t={t} lang={lang} setLang={setLang}
                             onVerifying={email=>setVerifyEmail(email)}/>}
       {tab==='predict' && <PredictionsPage t={t} user={user} matches={matches}
                             predictions={predictions} onSave={()=>{loadPredictions();loadLeaderboard();}}
                             onGoAuth={()=>setTab('auth')}
-                            onOpenDetail={id => setDetailMatchId(id)}/>}
-      {tab==='ranking' && <LeaderboardPage t={t} user={user} leaderboard={leaderboard} loading={lbLoading} matches={matches}/>}
+                            onOpenDetail={id => setDetailMatchId(id)}
+                            awardPreds={awardPreds} awardWinners={awardWinners}
+                            awardsOpen={awardsOpen}/>}
+      {tab==='ranking' && <LeaderboardPage t={t} user={user} leaderboard={leaderboard} loading={lbLoading}
+                            matches={matches} awardPreds={awardPreds} awardWinners={awardWinners}/>}
       {tab==='bracket' && <BracketPage t={t} matches={matches} predictions={predictions} user={user}/>}
       {tab==='me'      && <ProfilePage t={t} user={user} leaderboard={leaderboard}
                             matches={matches} predictions={predictions}
                             onGoAuth={()=>setTab('auth')} signOut={signOut}/>}
       {tab==='admin'   && <AdminPage   t={t} matches={matches}
-                            onMatchUpdated={onRefresh}/>}
+                            onMatchUpdated={onRefresh}
+                            awardWinners={awardWinners} onAwardWinnersChange={loadAwards}/>}
 
       {/* BOTTOM TAB BAR */}
       <nav className="tab-bar">
