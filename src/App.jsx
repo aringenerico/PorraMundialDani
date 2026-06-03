@@ -1829,6 +1829,24 @@ function HomePage({ t, user, matches, predictions, leaderboard, onGoAuth, onTabC
               </div>
             ))}
           </div>
+          <div style={{
+            marginTop:10, background:'var(--surface2)', borderRadius:12,
+            padding:'12px 14px', display:'flex', alignItems:'center', gap:12,
+            border:'1px solid rgba(245,183,49,.25)',
+          }}>
+            <Icon name="trophy" size={18} color="var(--gold)" stroke={2}/>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12, fontWeight:700, color:'var(--txt)'}}>
+                Pronóstico especial acertado
+              </div>
+              <div style={{fontSize:10, color:'var(--mut)', marginTop:2}}>
+                Campeón · Goleador · MVP · Portero · Jugador joven
+              </div>
+            </div>
+            <div style={{fontFamily:'Archivo Black,sans-serif', fontSize:22, color:'var(--gold)'}}>
+              +5
+            </div>
+          </div>
         </div>
       </div>
     </div>
