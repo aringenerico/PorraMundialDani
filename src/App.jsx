@@ -109,7 +109,7 @@ const AWARD_CONFIG = [
   { key:'top_scorer',      label:'Máximo Goleador', icon:'boot',   type:'player' },
   { key:'mvp',             label:'MVP',             icon:'star',   type:'player' },
   { key:'best_goalkeeper', label:'Mejor Portero',   icon:'glove',  type:'player' },
-  { key:'best_player',     label:'Mejor Jugador',   icon:'medal',  type:'player' },
+  { key:'best_player',     label:'Mejor Jugador Joven', icon:'medal', type:'player' },
 ];
 
 const AWARD_TEAMS = Object.keys(COUNTRIES).sort((a, b) => a.localeCompare(b));
@@ -386,7 +386,26 @@ const AWARD_PLAYERS = {
     {name:'Yassine Bounou',team:'Morocco'},
   ],
 };
-AWARD_PLAYERS.best_player = AWARD_PLAYERS.mvp;
+AWARD_PLAYERS.best_player = [
+  {name:'Alejandro Garnacho',team:'Argentina'},{name:'Claudio Echeverri',team:'Argentina'},
+  {name:'Franco Mastantuono',team:'Argentina'},
+  {name:'Ilyes Homri',team:'Algeria'},
+  {name:'Max Wöber',team:'Austria'},
+  {name:'Endrick',team:'Brazil'},{name:'Estevao Willian',team:'Brazil'},
+  {name:'Désiré Doué',team:'France'},{name:'Leny Yoro',team:'France'},
+  {name:'Mathis Lambourde',team:'France'},{name:'Mathys Tel',team:'France'},
+  {name:'Warren Zaïre-Emery',team:'France'},
+  {name:'Assan Ouédraogo',team:'Germany'},{name:'Tom Rothe',team:'Germany'},
+  {name:'Ibrahim Osman',team:'Ghana'},
+  {name:'Bilal El Khannouss',team:'Morocco'},
+  {name:'Antonio Nusa',team:'Norway'},{name:'Sverre Nypan',team:'Norway'},
+  {name:'Matteo Pérez',team:'Panama'},
+  {name:'Lamine Yamal',team:'Spain'},{name:'Pau Cubarsí',team:'Spain'},
+  {name:'Amar Fatah',team:'Sweden'},
+  {name:'Arda Güler',team:'Turkey'},{name:'Emre Demir',team:'Turkey'},
+  {name:'Kenan Yıldız',team:'Turkey'},
+  {name:'Caden Clark',team:'USA'},{name:'Paxten Aaronson',team:'USA'},
+];
 
 // ─── GROUP STANDINGS ─────────────────────────────────────────────────────────
 function computeAllStandings(matches) {
