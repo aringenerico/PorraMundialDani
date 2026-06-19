@@ -5085,15 +5085,17 @@ function App() {
   }, []);
 
   const loadChronicles = useCallback(async () => {
-    const [{ data: chrs }, { data: rxs }, { data: cmts }] = await Promise.all([
+    const [{ data: chrs }, { data: rxs }, { data: cmts }, { data: profs }] = await Promise.all([
       supabase.from('chronicles').select('*').order('id', { ascending: false }),
       supabase.from('chronicle_reactions').select('*'),
-      supabase.from('chronicle_comments').select('id, chronicle_id, user_id, text, created_at, profiles(display_name)').order('created_at'),
+      supabase.from('chronicle_comments').select('id, chronicle_id, user_id, text, created_at').order('created_at'),
+      supabase.from('profiles').select('id, display_name'),
     ]);
     setChronicles(chrs || []);
     setChronicleReactions(rxs || []);
+    const nameByUid = new Map((profs || []).map(p => [p.id, p.display_name]));
     setChronicleComments((cmts || []).map(c => ({
-      ...c, display_name: c.profiles?.display_name || 'Anónimo',
+      ...c, display_name: nameByUid.get(c.user_id) || 'Anónimo',
     })));
   }, []);
 
