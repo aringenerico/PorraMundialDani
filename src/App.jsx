@@ -407,6 +407,91 @@ AWARD_PLAYERS.best_player = [
   {name:'Caden Clark',team:'USA'},{name:'Paxten Aaronson',team:'USA'},
 ];
 
+// ─── CHRONICLE HEADLINE TEMPLATES (cachondeo) ────────────────────────────────
+// Each type → pool of variants. {name} {pts} {n} {home} {away} {realH} {realA}
+// {predH} {predA} are filled in at generation time.
+const CHRONICLE_TEMPLATES = {
+  king_blowout: [ // Rey de jornada con ventaja holgada
+    '{name} se saca {pts} pts. Insufrible toda la semana.',
+    '{name} arrasa con {pts}. Aplausos forzados desde el resto.',
+    '{name} ({pts} pts) os ha pasado por encima como un camión.',
+    'Esta jornada va de {name}. Los demás, a tomar apuntes.',
+    '{name} arriba con {pts}. Mañana le habláis de usted.',
+  ],
+  king_tight: [ // Rey de jornada por la mínima
+    '{name} se lleva la jornada por los pelos: {pts} pts. Suerte de principiante.',
+    'Por un suspiro, {name} con {pts} pts. Casi nada.',
+    '{name} gana la jornada con {pts}. Foto-finish y carrera de quejas.',
+    '{name} clava {pts} pts. Por uno, pero los uno cuentan.',
+  ],
+  comeback_huge: [ // Remontada brutal 8+ puestos
+    '{name} sube {n} puestos. RESUCITADO.',
+    '{name} escala {n} posiciones. De repente todos somos sus amigos.',
+    '{name} sube {n} puestos en una jornada. Sospechoso, ¿no?',
+    '{name} hace +{n} puestos. Lazarus de la porra.',
+  ],
+  comeback_small: [ // Remontada moderada 3-7 puestos
+    '{name} sube {n} puestos. Avisado queda el de arriba.',
+    '{name} se mueve +{n}. Lento pero seguro.',
+    '{name} escala {n} posiciones. Modesto pero brava.',
+  ],
+  drop_huge: [ // Caída brutal 8+ puestos
+    '{name} cae {n} puestos. Recomendamos respirar profundo.',
+    '{name} desciende {n}. Aceptamos donaciones para subirle la moral.',
+    '{name} pierde {n} puestos. Sin comentarios, por respeto.',
+    '{name} con -{n}. Apaga la app, anda.',
+  ],
+  drop_small: [ // Caída moderada 3-7 puestos
+    '{name} cae {n} puestos. Mañana se levanta otro día.',
+    '{name} resbala {n} posiciones. A por la próxima.',
+    '{name} pierde {n}. Pasa en las mejores familias.',
+  ],
+  exact_pleno: [ // Pleno de marcadores
+    '{name} clava {n} marcadores exactos. Brujería pura.',
+    '{n} marcadores exactos para {name}. ¿Vidente o tramposo?',
+    '{name} acertó {n} marcadores. Le confiscamos la bola de cristal.',
+    '{name} se ríe del azar: {n} marcadores exactos.',
+  ],
+  exact_double: [ // 2 marcadores exactos
+    '{name} se saca 2 marcadores exactos. Tampoco te lo creas mucho.',
+    'Dobletazo de exactos para {name}. Aplausos moderados.',
+  ],
+  miss_epic: [ // Cagada épica >5 goles diferencia
+    '{name} tira {predH}-{predA} en {home} vs {away}. Acabó {realH}-{realA}. Sin palabras.',
+    '{home} {realH}-{realA} {away}. {name} pronosticó {predH}-{predA}. Pa flipar.',
+    '{name} predijo {predH}-{predA}. Realidad: {realH}-{realA}. Para alegrarnos a todos.',
+    'Cagada del finde: {name} con {predH}-{predA} en {home}-{away} ({realH}-{realA}).',
+  ],
+  prophet: [ // Profeta del underdog (<30% acertó)
+    'Solo {n} acertasteis {home} {realH}-{realA} {away}. {prophets}, brujos.',
+    '{home} {realH}-{realA} {away}: contra todo pronóstico. Solo {n} pillasteis el resultado.',
+    'El bombazo de la jornada: {home} {realH}-{realA} {away}. {n} vieron venir el resultado.',
+  ],
+  unanimous: [ // Mismo marcador exacto entre muchos
+    '{n} de vosotros tirasteis el mismo marcador. ¿Copia o telepatía?',
+    'Casualidad colectiva: {n} mismas predicciones en {home}-{away}. Sospechoso.',
+    '{n} apostasteis {predH}-{predA} en {home}-{away}. Os habéis copiado, admitidlo.',
+  ],
+  next_md: [ // Cierre con teaser
+    'Próxima jornada cierra en {countdown}. Volverán los lloros.',
+    'En {countdown} cierra J{next}. Preparad excusas.',
+    'Quedan {countdown} para la próxima. A pensar.',
+    'Cierre próximo en {countdown}. Que la suerte os acompañe (a otros).',
+  ],
+  empty: [
+    'Jornada plana. Ni penas ni glorias. Continuamos.',
+    'Pocas emociones esta jornada. Igual la próxima.',
+    'Jornada gris. Sin destacados. Pasamos página.',
+  ],
+};
+
+// Helper: pick a random variant and interpolate vars
+function pickHeadline(type, vars={}) {
+  const pool = CHRONICLE_TEMPLATES[type] || CHRONICLE_TEMPLATES.empty;
+  const tmpl = pool[Math.floor(Math.random() * pool.length)];
+  return tmpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? `{${k}}`);
+}
+
 // ─── GROUP STANDINGS ─────────────────────────────────────────────────────────
 function computeAllStandings(matches) {
   const groups = {};
@@ -1522,7 +1607,188 @@ function VerifyScreen({ t, email }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: HOME
 // ─────────────────────────────────────────────────────────────────────────────
-function HomePage({ t, user, matches, predictions, leaderboard, onGoAuth, onTabChange, awardPreds, awardWinners, tbPtsByUser={} }) {
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENT: CHRONICLE CARD (Home top — post-matchday recap)
+// ─────────────────────────────────────────────────────────────────────────────
+const CHRONICLE_EMOJIS = ['👏','😂','🔥','💀'];
+
+function ChronicleCard({ t, user, chronicle, reactions, comments, onReact, onUnreact,
+                          onAddComment, onDeleteComment, onGoAuth }) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [newComment, setNewComment] = useState('');
+
+  if (!chronicle) return null;
+
+  const headlines = Array.isArray(chronicle.headlines) ? chronicle.headlines : [];
+  const myReactions = new Set(
+    (reactions || []).filter(r => r.user_id === user?.id).map(r => r.emoji)
+  );
+  const reactionCounts = CHRONICLE_EMOJIS.reduce((acc, e) => {
+    acc[e] = (reactions || []).filter(r => r.emoji === e).length;
+    return acc;
+  }, {});
+  const commentsForThis = (comments || []).filter(c => c.chronicle_id === chronicle.id)
+    .sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+
+  const toggleReaction = (e) => {
+    if (!user) { onGoAuth?.(); return; }
+    if (myReactions.has(e)) onUnreact(e); else onReact(e);
+  };
+
+  const submitComment = async () => {
+    const text = newComment.trim();
+    if (!text || !user) return;
+    await onAddComment(text);
+    setNewComment('');
+  };
+
+  return (
+    <>
+      <div style={{padding:'14px 16px 0'}}>
+        <div className="card" style={{padding:'14px 16px',position:'relative',overflow:'hidden',
+          border:'1px solid rgba(245,183,49,0.25)',
+          background:'linear-gradient(135deg,var(--surface),var(--surface2))'}}>
+          <div style={{position:'absolute',top:-30,right:-30,width:90,height:90,
+            borderRadius:'50%',background:'rgba(245,183,49,0.10)',filter:'blur(20px)',pointerEvents:'none'}}/>
+          {/* Header */}
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,position:'relative'}}>
+            <Icon name="trophy" size={14} color="var(--gold)" stroke={2}/>
+            <span style={{fontFamily:'Archivo Black,sans-serif',fontSize:14,
+              textTransform:'uppercase',letterSpacing:'.08em'}}>{chronicle.title}</span>
+            <span style={{marginLeft:'auto',fontSize:10,color:'var(--mut)',
+              letterSpacing:'.08em',textTransform:'uppercase'}}>La Crónica</span>
+          </div>
+
+          {/* Headlines */}
+          <div style={{display:'flex',flexDirection:'column',gap:10,position:'relative'}}>
+            {headlines.map((h, i) => (
+              <div key={i} style={{display:'flex',gap:10,alignItems:'flex-start',
+                paddingBottom:i<headlines.length-1?10:0,
+                borderBottom:i<headlines.length-1?'1px dashed var(--line)':'none'}}>
+                <div style={{fontSize:18,lineHeight:1.1,flexShrink:0}}>{h.emoji || '•'}</div>
+                <div style={{fontSize:13,lineHeight:1.4,color:'var(--txt)'}}>{h.text}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Reactions + comments button */}
+          <div style={{display:'flex',alignItems:'center',gap:6,marginTop:14,
+            paddingTop:12,borderTop:'1px solid var(--line)',flexWrap:'wrap',position:'relative'}}>
+            {CHRONICLE_EMOJIS.map(e => {
+              const mine = myReactions.has(e);
+              const n = reactionCounts[e] || 0;
+              return (
+                <button key={e} onClick={() => toggleReaction(e)}
+                  style={{
+                    fontSize:13,padding:'4px 9px',borderRadius:99,
+                    background: mine ? 'rgba(245,183,49,0.15)' : 'var(--surface)',
+                    border:`1px solid ${mine ? 'rgba(245,183,49,0.5)' : 'var(--line)'}`,
+                    color: mine ? 'var(--gold)' : 'var(--mut)',
+                    cursor:'pointer',display:'inline-flex',alignItems:'center',gap:4,
+                    fontFamily:'JetBrains Mono,monospace',fontWeight:700,
+                  }}>
+                  <span style={{fontFamily:'sans-serif'}}>{e}</span>
+                  {n > 0 && <span style={{fontSize:11}}>{n}</span>}
+                </button>
+              );
+            })}
+            <button onClick={() => setSheetOpen(true)} style={{
+              marginLeft:'auto',fontSize:12,padding:'5px 11px',borderRadius:99,
+              background:'transparent',border:'1px solid var(--line)',color:'var(--mut)',
+              cursor:'pointer',display:'inline-flex',alignItems:'center',gap:5,fontWeight:600,
+            }}>
+              💬 {commentsForThis.length > 0 ? `Comentarios (${commentsForThis.length})` : 'Comentar'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* COMMENTS SHEET */}
+      {sheetOpen && (
+        <div onClick={() => setSheetOpen(false)} style={{
+          position:'fixed',inset:0,zIndex:200,
+          background:'rgba(0,0,0,.65)',backdropFilter:'blur(4px)',
+          display:'flex',alignItems:'flex-end',justifyContent:'center',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width:'100%',maxWidth:560,maxHeight:'80vh',background:'var(--bg-deep)',
+            borderRadius:'16px 16px 0 0',border:'1px solid var(--line)',borderBottom:'none',
+            display:'flex',flexDirection:'column',
+          }}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid var(--line)',
+              display:'flex',alignItems:'center',gap:8}}>
+              <Icon name="trophy" size={14} color="var(--gold)" stroke={2}/>
+              <span style={{fontWeight:700,fontSize:14}}>Comentarios · {chronicle.title}</span>
+              <button onClick={() => setSheetOpen(false)} style={{
+                marginLeft:'auto',background:'transparent',border:'none',color:'var(--mut)',
+                fontSize:22,cursor:'pointer',lineHeight:1,padding:0,
+              }}>×</button>
+            </div>
+            <div style={{flex:1,overflowY:'auto',padding:'12px 16px'}}>
+              {commentsForThis.length === 0 && (
+                <div style={{textAlign:'center',color:'var(--mut)',fontSize:13,padding:'24px 0'}}>
+                  Sé el primero en comentar.
+                </div>
+              )}
+              {commentsForThis.map(c => {
+                const isMine = c.user_id === user?.id;
+                return (
+                  <div key={c.id} style={{display:'flex',gap:10,padding:'10px 0',
+                    borderBottom:'1px solid var(--line)'}}>
+                    <div style={{
+                      width:34,height:34,borderRadius:10,background:'var(--surface2)',
+                      display:'flex',alignItems:'center',justifyContent:'center',
+                      fontWeight:700,fontSize:12,color:'var(--gold)',flexShrink:0,
+                    }}>{initials(c.display_name||'')}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:'flex',alignItems:'baseline',gap:6}}>
+                        <span style={{fontSize:12,fontWeight:700}}>
+                          {c.display_name || 'Anónimo'}
+                        </span>
+                        <span style={{fontSize:10,color:'var(--mut)'}}>
+                          {new Date(c.created_at).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+                        </span>
+                        {isMine && (
+                          <button onClick={() => onDeleteComment(c.id)} style={{
+                            marginLeft:'auto',background:'transparent',border:'none',
+                            color:'var(--mut)',fontSize:11,cursor:'pointer',
+                          }} title="Borrar">🗑</button>
+                        )}
+                      </div>
+                      <div style={{fontSize:13,marginTop:3,wordBreak:'break-word'}}>{c.text}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {user ? (
+              <div style={{padding:'10px 16px',borderTop:'1px solid var(--line)',
+                display:'flex',gap:8,alignItems:'center'}}>
+                <input
+                  value={newComment}
+                  onChange={e=>setNewComment(e.target.value.slice(0,280))}
+                  onKeyDown={e=>{if(e.key==='Enter')submitComment();}}
+                  placeholder="Suéltalo aquí (280 chars)"
+                  style={{flex:1,padding:'8px 12px',fontSize:13,borderRadius:10,
+                    background:'var(--surface)',border:'1px solid var(--line)',color:'var(--txt)'}}/>
+                <button className="btn-acc btn-sm" onClick={submitComment}
+                  disabled={!newComment.trim()}>Enviar</button>
+              </div>
+            ) : (
+              <div style={{padding:'12px 16px',borderTop:'1px solid var(--line)',textAlign:'center'}}>
+                <button className="btn-acc btn-sm" onClick={onGoAuth}>
+                  Iniciar sesión para comentar
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function HomePage({ t, user, matches, predictions, leaderboard, onGoAuth, onTabChange, awardPreds, awardWinners, tbPtsByUser={}, chronicle, chronicleReactions, chronicleComments, onChronicleReact, onChronicleUnreact, onChronicleComment, onChronicleDeleteComment }) {
   // Next deadline
   const nextDeadline = useMemo(() => {
     const upcoming = matches
@@ -1607,6 +1873,17 @@ function HomePage({ t, user, matches, predictions, leaderboard, onGoAuth, onTabC
 
   return (
     <div className="page">
+      {/* CRÓNICA — visible solo si hay una generada para la última jornada cerrada */}
+      <ChronicleCard t={t} user={user}
+        chronicle={chronicle}
+        reactions={chronicleReactions}
+        comments={chronicleComments}
+        onReact={onChronicleReact}
+        onUnreact={onChronicleUnreact}
+        onAddComment={onChronicleComment}
+        onDeleteComment={onChronicleDeleteComment}
+        onGoAuth={onGoAuth}/>
+
       {/* DEADLINE HERO */}
       {nextDeadline && (
         <div style={{padding:'14px 16px 0'}}>
@@ -2003,6 +2280,274 @@ function calcAwardBonus(userId, awardPreds, awardWinners) {
       const pred = awardPreds.find(p => p.user_id === userId && p.category === w.category);
       return sum + (pred?.value === w.value ? AWARD_BONUS : 0);
     }, 0);
+}
+
+// ─── ACHIEVEMENTS / LOGROS (computed 100% client-side) ───────────────────────
+const ACHIEVEMENTS = [
+  { id:'first_exact',     emoji:'🎯', name:'Primer Exacto',
+    desc:'Acertaste tu primer marcador. Hasta los rotos suenan a veces.' },
+  { id:'streak_3',        emoji:'🔥', name:'Racha de Fuego',
+    desc:'3 jornadas seguidas puntuando. Cuidado, te van a marcar.' },
+  { id:'king',            emoji:'👑', name:'Rey de Jornada',
+    desc:'Máximo puntuador de una jornada. Por una semana eras dios.' },
+  { id:'comeback',        emoji:'🚀', name:'Remontada',
+    desc:'Subiste 5+ puestos en una jornada. Todos quieren ser tu amigo.' },
+  { id:'qf_master',       emoji:'🎓', name:'Maestro de Cuartos',
+    desc:'3+ aciertos en partidos de cuartos. En cuartos te transformas.' },
+  { id:'champion_pick',   emoji:'🏆', name:'Apostó al Campeón',
+    desc:'Acertaste el campeón. O lo viste claro o tienes contactos.' },
+  { id:'full_awards',     emoji:'🌟', name:'Pleno Premios',
+    desc:'Los 5 premios acertados. Brujo. Brujo. BRUJO.' },
+  { id:'high_scoring',    emoji:'💎', name:'Goleada Imposible',
+    desc:'Acertaste un marcador con 4+ goles totales. Apuestas raras, premios gordos.' },
+  { id:'epic_miss',       emoji:'🐔', name:'Cagada Épica',
+    desc:'Predicción con 5+ goles de diferencia. Para alegrarnos a todos.' },
+  { id:'streak_predict',  emoji:'📝', name:'Constante',
+    desc:'Pronosticaste 10+ partidos. Te tomas esto en serio.' },
+];
+
+// Returns Set<id> of achievement ids unlocked for this user.
+function calcAchievements(userId, { matches, userPredictions, allPredictions, leaderboardRow, awardPreds, awardWinners }) {
+  const got = new Set();
+  if (!userId) return got;
+
+  const ups = (userPredictions||[]).filter(p => p.user_id === userId);
+  const finishedMs = (matches||[]).filter(m => m.status==='finished' && m.home_goals!==null && m.away_goals!==null);
+
+  // Build per-match-prediction map
+  const myExacts = ups.filter(p => {
+    const m = finishedMs.find(x => x.id === p.match_id);
+    return m && p.home_goals === m.home_goals && p.away_goals === m.away_goals;
+  });
+
+  // 1. first_exact
+  if (myExacts.length >= 1) got.add('first_exact');
+
+  // 2. streak_3 — 3 matchdays in a row with >0 pts
+  const ptsByMd = new Map();
+  finishedMs.forEach(m => {
+    const p = ups.find(x => x.match_id === m.id);
+    if (!p) return;
+    const pts = calcScore(p.home_goals, p.away_goals, m.home_goals, m.away_goals) || 0;
+    ptsByMd.set(String(m.matchday), (ptsByMd.get(String(m.matchday)) || 0) + pts);
+  });
+  const sortedMds = [...ptsByMd.entries()]
+    .filter(([_, pts]) => pts > 0)
+    .map(([md]) => md)
+    .sort((a,b) => Number(a) - Number(b));
+  let streak = 0, prev = null;
+  for (const md of sortedMds) {
+    if (prev === null || Number(md) === Number(prev) + 1) streak++;
+    else streak = 1;
+    if (streak >= 3) { got.add('streak_3'); break; }
+    prev = md;
+  }
+
+  // 3. king — at least one matchday where this user was top scorer
+  // Need to compare against ALL predictions for that md
+  const mdGroups = {};
+  finishedMs.forEach(m => {
+    if (!mdGroups[m.matchday]) mdGroups[m.matchday] = [];
+    mdGroups[m.matchday].push(m);
+  });
+  Object.values(mdGroups).forEach(ms => {
+    const ptsByUid = new Map();
+    ms.forEach(m => {
+      (allPredictions||[]).filter(p => p.match_id === m.id).forEach(p => {
+        const pts = calcScore(p.home_goals, p.away_goals, m.home_goals, m.away_goals) || 0;
+        ptsByUid.set(p.user_id, (ptsByUid.get(p.user_id) || 0) + pts);
+      });
+    });
+    const ranked = [...ptsByUid.entries()].sort((a,b) => b[1] - a[1]);
+    if (ranked[0] && ranked[0][0] === userId && ranked[0][1] > 0) got.add('king');
+  });
+
+  // 5. qf_master — 3+ correct in QF matches (correct = result OR exact)
+  const qfHits = finishedMs.filter(m => m.phase === 'qf').reduce((n, m) => {
+    const p = ups.find(x => x.match_id === m.id);
+    if (!p) return n;
+    const pts = calcScore(p.home_goals, p.away_goals, m.home_goals, m.away_goals) || 0;
+    return n + (pts >= 1 ? 1 : 0);
+  }, 0);
+  if (qfHits >= 3) got.add('qf_master');
+
+  // 6. champion_pick — predicted the champion (award champion winner matches user's pred)
+  const champWinner = (awardWinners||[]).find(w => w.category === 'champion')?.value;
+  if (champWinner) {
+    const myChamp = (awardPreds||[]).find(p => p.user_id === userId && p.category === 'champion')?.value;
+    if (myChamp === champWinner) got.add('champion_pick');
+  }
+
+  // 7. full_awards — all 5 winners correct
+  const allWinnersSet = (awardWinners||[]).filter(w => w.value != null);
+  if (allWinnersSet.length === 5) {
+    const allCorrect = allWinnersSet.every(w => {
+      const p = (awardPreds||[]).find(x => x.user_id === userId && x.category === w.category);
+      return p?.value === w.value;
+    });
+    if (allCorrect) got.add('full_awards');
+  }
+
+  // 8. high_scoring — at least one exact with 4+ total goals
+  if (myExacts.some(p => (p.home_goals + p.away_goals) >= 4)) got.add('high_scoring');
+
+  // 9. epic_miss — any pred with 5+ goal diff from real
+  const hasEpicMiss = ups.some(p => {
+    const m = finishedMs.find(x => x.id === p.match_id);
+    if (!m) return false;
+    return Math.abs((p.home_goals - p.away_goals) - (m.home_goals - m.away_goals)) >= 5;
+  });
+  if (hasEpicMiss) got.add('epic_miss');
+
+  // 10. streak_predict — 10+ predictions made
+  if (ups.length >= 10) got.add('streak_predict');
+
+  // 4. comeback — needs historical rank delta; computed only if leaderboardRow has movement data
+  // For now skip (would need historical snapshots). Could be added later via stored chronicles.
+
+  return got;
+}
+
+// Generates chronicle headlines for a given matchday.
+// Requires: matchdayId (e.g. 1 for J1), matches (all), allPredictions (every user
+// for THIS matchday), profilesByUid (Map user_id -> display_name), prevRanks
+// (Map user_id -> position before this matchday), currRanks (Map user_id ->
+// position after), nextMatchday (for the teaser line), nextDeadlineStr.
+// Returns an array of { type, emoji, text }.
+function generateChronicleHeadlines({ matchdayId, matches, allPredictions, profilesByUid,
+                                      prevRanks, currRanks, nextMatchdayLabel, nextDeadlineStr }) {
+  const out = [];
+  const nameOf = uid => profilesByUid.get(uid) || 'Anónimo';
+
+  const mdMatches = matches.filter(m => String(m.matchday) === String(matchdayId)
+    && m.status === 'finished' && m.home_goals !== null && m.away_goals !== null);
+  if (mdMatches.length === 0) {
+    return [{ type:'empty', emoji:'🕰️', text: pickHeadline('empty') }];
+  }
+
+  // Per-user points and exact count for this matchday
+  const ptsByUid = new Map();
+  const exactsByUid = new Map();
+  mdMatches.forEach(m => {
+    allPredictions.forEach(p => {
+      if (p.match_id !== m.id) return;
+      const pts = calcScore(p.home_goals, p.away_goals, m.home_goals, m.away_goals);
+      if (pts === null) return;
+      ptsByUid.set(p.user_id, (ptsByUid.get(p.user_id) || 0) + pts);
+      if (p.home_goals === m.home_goals && p.away_goals === m.away_goals) {
+        exactsByUid.set(p.user_id, (exactsByUid.get(p.user_id) || 0) + 1);
+      }
+    });
+  });
+
+  // 1. Rey de la jornada — branching por margen
+  const ranking = [...ptsByUid.entries()].sort((a,b) => b[1] - a[1]);
+  if (ranking.length > 0 && ranking[0][1] > 0) {
+    const [kingUid, kingPts] = ranking[0];
+    const secondPts = ranking[1]?.[1] || 0;
+    const margin = kingPts - secondPts;
+    const type = margin > 4 ? 'king_blowout' : 'king_tight';
+    out.push({ type, emoji:'👑',
+      text: pickHeadline(type, { name: nameOf(kingUid), pts: kingPts }) });
+  }
+
+  // 2. Remontadas y caídas (con branching por magnitud)
+  const deltas = [];
+  prevRanks.forEach((prev, uid) => {
+    const curr = currRanks.get(uid);
+    if (curr != null) deltas.push({ uid, delta: prev - curr }); // positive = up
+  });
+  const bestUp   = deltas.filter(d => d.delta > 0).sort((a,b) => b.delta - a.delta)[0];
+  const bestDown = deltas.filter(d => d.delta < 0).sort((a,b) => a.delta - b.delta)[0];
+  if (bestUp && bestUp.delta >= 3) {
+    const type = bestUp.delta >= 8 ? 'comeback_huge' : 'comeback_small';
+    out.push({ type, emoji:'🚀',
+      text: pickHeadline(type, { name: nameOf(bestUp.uid), n: bestUp.delta }) });
+  }
+  if (bestDown && Math.abs(bestDown.delta) >= 3) {
+    const type = Math.abs(bestDown.delta) >= 8 ? 'drop_huge' : 'drop_small';
+    out.push({ type, emoji:'📉',
+      text: pickHeadline(type, { name: nameOf(bestDown.uid), n: Math.abs(bestDown.delta) }) });
+  }
+
+  // 3. Pleno de marcadores exactos
+  const exactsRanking = [...exactsByUid.entries()].sort((a,b) => b[1] - a[1]);
+  if (exactsRanking.length > 0 && exactsRanking[0][1] >= 2) {
+    const [uid, n] = exactsRanking[0];
+    const type = n >= 3 ? 'exact_pleno' : 'exact_double';
+    out.push({ type, emoji:'🎯',
+      text: pickHeadline(type, { name: nameOf(uid), n }) });
+  }
+
+  // 4. Cagada épica (>5 goles diferencia entre pred y real)
+  const cagadas = [];
+  mdMatches.forEach(m => {
+    allPredictions.forEach(p => {
+      if (p.match_id !== m.id) return;
+      const diff = Math.abs((p.home_goals - p.away_goals) - (m.home_goals - m.away_goals));
+      if (diff >= 5) cagadas.push({ uid: p.user_id, match: m, pred: p, diff });
+    });
+  });
+  if (cagadas.length > 0) {
+    const worst = cagadas.sort((a,b) => b.diff - a.diff)[0];
+    out.push({ type:'miss_epic', emoji:'💀',
+      text: pickHeadline('miss_epic', {
+        name: nameOf(worst.uid),
+        predH: worst.pred.home_goals, predA: worst.pred.away_goals,
+        realH: worst.match.home_goals, realA: worst.match.away_goals,
+        home: worst.match.home_team, away: worst.match.away_team,
+      })
+    });
+  }
+
+  // 5. Profeta del underdog — partido donde <30% acertó el resultado V/E/D
+  mdMatches.forEach(m => {
+    const ps = allPredictions.filter(p => p.match_id === m.id);
+    if (ps.length < 5) return; // need enough predictions
+    const real = Math.sign(m.home_goals - m.away_goals);
+    const correct = ps.filter(p => Math.sign(p.home_goals - p.away_goals) === real);
+    if (correct.length === 0) return;
+    if (correct.length / ps.length < 0.30) {
+      out.push({ type:'prophet', emoji:'🦉',
+        text: pickHeadline('prophet', {
+          n: correct.length,
+          home: m.home_team, away: m.away_team,
+          realH: m.home_goals, realA: m.away_goals,
+          prophets: correct.length === 1 ? 'Es un' : 'Sois unos',
+        })
+      });
+    }
+  });
+
+  // 6. Mismo marcador (3+ personas mismo exacto)
+  mdMatches.forEach(m => {
+    const ps = allPredictions.filter(p => p.match_id === m.id);
+    const counts = new Map();
+    ps.forEach(p => {
+      const k = `${p.home_goals}-${p.away_goals}`;
+      counts.set(k, (counts.get(k) || 0) + 1);
+    });
+    for (const [k, n] of counts) {
+      if (n >= 3) {
+        const [h, a] = k.split('-').map(Number);
+        out.push({ type:'unanimous', emoji:'🤝',
+          text: pickHeadline('unanimous', {
+            n, home: m.home_team, away: m.away_team, predH: h, predA: a,
+          })
+        });
+        break; // one per match
+      }
+    }
+  });
+
+  // 7. Teaser para próxima jornada
+  if (nextMatchdayLabel && nextDeadlineStr) {
+    out.push({ type:'next_md', emoji:'⏳',
+      text: pickHeadline('next_md', { next: nextMatchdayLabel, countdown: nextDeadlineStr }) });
+  }
+
+  // Trim to max 6 headlines, prioritizing variety (one per type ideally)
+  return out.slice(0, 6);
 }
 
 function AwardSection({ t, user, awardPreds, awardWinners, awardsOpen, onGoAuth }) {
@@ -2793,6 +3338,13 @@ function UserDetailModal({ t, row, rank, matches, awardPreds, awardWinners, onCl
   (awardWinners || []).forEach(w => { winnersMap[w.category] = w.value; });
   const hasWinners = (awardWinners || []).some(w => w.value != null);
 
+  // Compute achievements with the data we have (king achievement is skipped here
+  // since it needs all-users predictions; the rest work fine with this user's data)
+  const achievementsUnlocked = useMemo(() => calcAchievements(row.user_id, {
+    matches, userPredictions: preds || [], allPredictions: preds || [],
+    leaderboardRow: row, awardPreds, awardWinners,
+  }), [row.user_id, preds, matches, awardPreds, awardWinners, row]);
+
   // Group matches by phase + matchday
   const finishedMatches = matches.filter(m => m.status === 'finished' && m.home_goals != null);
   const otherMatches    = matches.filter(m => !(m.status === 'finished' && m.home_goals != null));
@@ -2885,6 +3437,33 @@ function UserDetailModal({ t, row, rank, matches, awardPreds, awardWinners, onCl
               </span>
               <span>Puntos desde cuartos (desempate)</span>
             </div>
+          </div>
+        </div>
+
+        {/* ACHIEVEMENTS / LOGROS */}
+        <div style={{padding:'12px 16px 4px'}}>
+          <div style={{fontWeight:700, fontSize:11, textTransform:'uppercase', letterSpacing:'.1em',
+            color:'var(--mut)', marginBottom:8, paddingLeft:6, borderLeft:'3px solid var(--gold)'}}>
+            🏅 Logros · {achievementsUnlocked.size}/{ACHIEVEMENTS.length}
+          </div>
+          <div className="card" style={{padding:'12px 14px',display:'flex',flexWrap:'wrap',gap:6}}>
+            {ACHIEVEMENTS.map(a => {
+              const got = achievementsUnlocked.has(a.id);
+              return (
+                <div key={a.id} title={a.desc}
+                  style={{
+                    display:'inline-flex',alignItems:'center',gap:5,
+                    padding:'5px 10px',borderRadius:99,fontSize:11,fontWeight:600,
+                    background: got ? 'rgba(245,183,49,0.12)' : 'var(--surface2)',
+                    border: got ? '1px solid rgba(245,183,49,0.4)' : '1px solid var(--line)',
+                    color: got ? 'var(--gold)' : 'var(--mut)',
+                    opacity: got ? 1 : 0.55,
+                  }}>
+                  <span style={{fontSize:13}}>{a.emoji}</span>
+                  <span>{a.name}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -3770,7 +4349,7 @@ function BracketPage({ t, matches, predictions = [], user }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: PROFILE
 // ─────────────────────────────────────────────────────────────────────────────
-function ProfilePage({ t, user, leaderboard, matches, predictions, onGoAuth, signOut }) {
+function ProfilePage({ t, user, leaderboard, matches, predictions, onGoAuth, signOut, awardPreds=[], awardWinners=[] }) {
   const myRow = useMemo(() => {
     if (!user || !leaderboard.length) return null;
     const idx = leaderboard.findIndex(r => r.user_id === user.id);
@@ -3876,6 +4455,40 @@ function ProfilePage({ t, user, leaderboard, matches, predictions, onGoAuth, sig
         </>
       )}
 
+      {/* Logros */}
+      {user && (() => {
+        const got = calcAchievements(user.id, {
+          matches, userPredictions: predictions, allPredictions: predictions,
+          leaderboardRow: myRow, awardPreds, awardWinners,
+        });
+        return (
+          <>
+            <SectionTitle>🏅 Logros · {got.size}/{ACHIEVEMENTS.length}</SectionTitle>
+            <div style={{padding:'0 16px'}}>
+              <div className="card" style={{display:'flex',flexWrap:'wrap',gap:6,padding:'12px 14px'}}>
+                {ACHIEVEMENTS.map(a => {
+                  const has = got.has(a.id);
+                  return (
+                    <div key={a.id} title={a.desc}
+                      style={{
+                        display:'inline-flex',alignItems:'center',gap:5,
+                        padding:'5px 10px',borderRadius:99,fontSize:11,fontWeight:600,
+                        background: has ? 'rgba(245,183,49,0.12)' : 'var(--surface2)',
+                        border: has ? '1px solid rgba(245,183,49,0.4)' : '1px solid var(--line)',
+                        color: has ? 'var(--gold)' : 'var(--mut)',
+                        opacity: has ? 1 : 0.55,
+                      }}>
+                      <span style={{fontSize:13}}>{a.emoji}</span>
+                      <span>{a.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
       {/* Actions */}
       <div style={{padding:'20px 16px 0',display:'flex',flexDirection:'column',gap:8}}>
         <button className="btn-ghost" style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}
@@ -3913,7 +4526,8 @@ const FD_STAGE_MAP = {
 };
 const fdNorm = n => FD_TEAM_MAP[n] || n;
 
-function AdminPage({ t, matches, onMatchUpdated, awardWinners, onAwardWinnersChange }) {
+function AdminPage({ t, matches, onMatchUpdated, awardWinners, onAwardWinnersChange,
+                       user, leaderboard=[], chronicles=[], onChroniclesChange }) {
   const [results, setResults]       = useState({});
   const [saved, setSaved]           = useState({});
   const [phase, setPhase]           = useState('all');
@@ -4240,6 +4854,159 @@ function AdminPage({ t, matches, onMatchUpdated, awardWinners, onAwardWinnersCha
           ))}
         </div>
       </div>
+
+      {/* CRÓNICA — generar la de una jornada cerrada */}
+      <ChronicleAdminSection
+        matches={matches} leaderboard={leaderboard} user={user}
+        chronicles={chronicles} onChroniclesChange={onChroniclesChange}/>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN: CHRONICLE GENERATOR
+// ─────────────────────────────────────────────────────────────────────────────
+function ChronicleAdminSection({ matches, leaderboard, user, chronicles, onChroniclesChange }) {
+  const [selectedMd, setSelectedMd] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
+
+  // Closed matchdays = group of matches by matchday where ALL are finished
+  const closedMatchdays = useMemo(() => {
+    const byMd = {};
+    matches.forEach(m => {
+      const key = String(m.matchday);
+      if (!byMd[key]) byMd[key] = [];
+      byMd[key].push(m);
+    });
+    return Object.entries(byMd)
+      .filter(([_, ms]) => ms.length > 0 && ms.every(m => m.status === 'finished' && m.home_goals !== null))
+      .map(([md]) => md)
+      .sort((a,b) => Number(a) - Number(b));
+  }, [matches]);
+
+  const existingMdIds = new Set((chronicles||[]).map(c => c.matchday));
+
+  const generate = async () => {
+    if (!selectedMd || !user) return;
+    setBusy(true); setStatus('');
+    try {
+      // 1. Load ALL predictions for THIS matchday only (admin RLS may apply)
+      const mdMatchIds = matches.filter(m => String(m.matchday) === selectedMd).map(m => m.id);
+      const { data: allPreds, error: predErr } = await supabase
+        .from('predictions').select('*').in('match_id', mdMatchIds);
+      if (predErr) throw predErr;
+
+      // 2. Load profiles for display_name lookup
+      const userIds = [...new Set((allPreds||[]).map(p => p.user_id))];
+      const { data: profs } = await supabase.from('profiles')
+        .select('id, display_name').in('id', userIds);
+      const profilesByUid = new Map((profs||[]).map(p => [p.id, p.display_name]));
+      // Fallback: leaderboard rows also carry display_name
+      (leaderboard||[]).forEach(r => {
+        if (!profilesByUid.has(r.user_id)) profilesByUid.set(r.user_id, r.display_name);
+      });
+
+      // 3. Compute rank deltas: prev = leaderboard MINUS this matchday's pts; curr = leaderboard now.
+      // (Approximation: we use current totals - matchday pts to reconstruct prev ranks.)
+      const mdPtsByUid = new Map();
+      mdMatchIds.forEach(mid => {
+        const m = matches.find(x => x.id === mid);
+        if (!m) return;
+        (allPreds||[]).filter(p => p.match_id === mid).forEach(p => {
+          const pts = calcScore(p.home_goals, p.away_goals, m.home_goals, m.away_goals);
+          if (pts === null) return;
+          mdPtsByUid.set(p.user_id, (mdPtsByUid.get(p.user_id) || 0) + pts);
+        });
+      });
+      const currRanksArr = [...(leaderboard||[])]
+        .map(r => ({ uid: r.user_id, pts: r.total_pts || 0 }))
+        .sort((a,b) => b.pts - a.pts);
+      const prevRanksArr = currRanksArr
+        .map(r => ({ uid: r.uid, pts: r.pts - (mdPtsByUid.get(r.uid) || 0) }))
+        .sort((a,b) => b.pts - a.pts);
+      const currRanks = new Map(currRanksArr.map((r,i) => [r.uid, i+1]));
+      const prevRanks = new Map(prevRanksArr.map((r,i) => [r.uid, i+1]));
+
+      // 4. Next matchday teaser
+      const upcoming = matches
+        .filter(m => m.deadline && new Date(m.deadline) > new Date())
+        .sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+      const next = upcoming[0];
+      let nextStr = null, nextLabel = null;
+      if (next) {
+        const diff = new Date(next.deadline) - new Date();
+        const d = Math.floor(diff/86400000);
+        const h = Math.floor((diff%86400000)/3600000);
+        nextStr = d>0 ? `${d}d ${h}h` : `${h}h`;
+        nextLabel = next.matchday;
+      }
+
+      // 5. Generate headlines
+      const headlines = generateChronicleHeadlines({
+        matchdayId: selectedMd,
+        matches,
+        allPredictions: allPreds || [],
+        profilesByUid,
+        prevRanks, currRanks,
+        nextMatchdayLabel: nextLabel,
+        nextDeadlineStr: nextStr,
+      });
+
+      // 6. Save (upsert by matchday)
+      const title = `La Crónica · J${selectedMd}`;
+      const { error: insErr } = await supabase.from('chronicles')
+        .upsert({ matchday: selectedMd, title, headlines, generated_by: user.id, generated_at: new Date().toISOString() },
+                { onConflict: 'matchday' });
+      if (insErr) throw insErr;
+      setStatus('ok');
+      onChroniclesChange?.();
+      setTimeout(() => setStatus(''), 3000);
+    } catch (e) {
+      setStatus('err:' + (e.message || 'desconocido'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{padding:'0 16px 16px'}}>
+      <div className="card" style={{padding:'12px 16px',marginTop:12,
+        border:'1px solid rgba(245,183,49,0.25)'}}>
+        <div style={{fontWeight:700,fontSize:14,marginBottom:8,display:'flex',alignItems:'center',gap:6}}>
+          <Icon name="trophy" size={16} color="var(--gold)" stroke={2}/>
+          📰 Generar Crónica
+        </div>
+        <div style={{fontSize:11,color:'var(--mut)',marginBottom:10}}>
+          Solo aparecen jornadas con TODOS los partidos finalizados. Si vuelves a generarla, se reemplaza la anterior con nuevas frases aleatorias.
+        </div>
+        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+          <select value={selectedMd} onChange={e=>setSelectedMd(e.target.value)}
+            style={{fontSize:12,padding:'5px 9px',borderRadius:6,
+              background:'var(--surface)',border:'1px solid var(--line)',
+              color: selectedMd ? 'var(--txt)' : 'var(--mut)'}}>
+            <option value="">— Elige jornada —</option>
+            {closedMatchdays.map(md => (
+              <option key={md} value={md}>
+                Jornada {md}{existingMdIds.has(md) ? ' (regenerar)' : ''}
+              </option>
+            ))}
+          </select>
+          <button className="btn-acc btn-sm" onClick={generate}
+            disabled={!selectedMd || busy}>
+            {busy ? '⏳ Generando…' : '📰 Generar'}
+          </button>
+          {status === 'ok' && <span style={{fontSize:11,color:'var(--green)'}}>✓ Generada</span>}
+          {status.startsWith?.('err:') && (
+            <span style={{fontSize:11,color:'var(--err)'}}>❌ {status.replace('err:','')}</span>
+          )}
+        </div>
+        {closedMatchdays.length === 0 && (
+          <div style={{fontSize:11,color:'var(--mut)',fontStyle:'italic',marginTop:8}}>
+            Aún no hay ninguna jornada totalmente cerrada.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -4263,6 +5030,9 @@ function App() {
   const [awardPreds,   setAwardPreds]   = useState([]);
   const [awardWinners, setAwardWinners] = useState([]);
   const [tbPtsByUser,  setTbPtsByUser]  = useState({});  // { user_id: tb_pts } — knockout tiebreaker
+  const [chronicles,         setChronicles]         = useState([]);
+  const [chronicleReactions, setChronicleReactions] = useState([]);
+  const [chronicleComments,  setChronicleComments]  = useState([]);
 
   const t = LANGS[lang];
 
@@ -4314,11 +5084,25 @@ function App() {
     setTbPtsByUser(map);
   }, []);
 
+  const loadChronicles = useCallback(async () => {
+    const [{ data: chrs }, { data: rxs }, { data: cmts }] = await Promise.all([
+      supabase.from('chronicles').select('*').order('id', { ascending: false }),
+      supabase.from('chronicle_reactions').select('*'),
+      supabase.from('chronicle_comments').select('id, chronicle_id, user_id, text, created_at, profiles(display_name)').order('created_at'),
+    ]);
+    setChronicles(chrs || []);
+    setChronicleReactions(rxs || []);
+    setChronicleComments((cmts || []).map(c => ({
+      ...c, display_name: c.profiles?.display_name || 'Anónimo',
+    })));
+  }, []);
+
   useEffect(()=>{ loadMatches(); },[loadMatches]);
   useEffect(()=>{ loadPredictions(); },[loadPredictions]);
   useEffect(()=>{ loadLeaderboard(); },[loadLeaderboard]);
   useEffect(()=>{ loadAwards(); },[loadAwards]);
   useEffect(()=>{ loadTbPts(); },[loadTbPts]);
+  useEffect(()=>{ loadChronicles(); },[loadChronicles]);
 
   const signOut = async()=>{ await supabase.auth.signOut(); setTab('home'); };
 
@@ -4357,7 +5141,35 @@ function App() {
     : null;
   const awardsOpen = firstMatchDeadline ? isBeforeDeadline(firstMatchDeadline) : true;
 
-  const onRefresh = ()=>{ loadMatches(); loadPredictions(); loadLeaderboard(); loadAwards(); loadTbPts(); };
+  const onRefresh = ()=>{ loadMatches(); loadPredictions(); loadLeaderboard(); loadAwards(); loadTbPts(); loadChronicles(); };
+
+  // Latest chronicle (first row, ordered DESC by id)
+  const latestChronicle = chronicles[0] || null;
+
+  // Chronicle handlers
+  const chronicleReact = async (emoji) => {
+    if (!user || !latestChronicle) return;
+    await supabase.from('chronicle_reactions')
+      .insert({ chronicle_id: latestChronicle.id, user_id: user.id, emoji });
+    loadChronicles();
+  };
+  const chronicleUnreact = async (emoji) => {
+    if (!user || !latestChronicle) return;
+    await supabase.from('chronicle_reactions').delete()
+      .eq('chronicle_id', latestChronicle.id).eq('user_id', user.id).eq('emoji', emoji);
+    loadChronicles();
+  };
+  const chronicleAddComment = async (text) => {
+    if (!user || !latestChronicle) return;
+    await supabase.from('chronicle_comments')
+      .insert({ chronicle_id: latestChronicle.id, user_id: user.id, text });
+    loadChronicles();
+  };
+  const chronicleDeleteComment = async (id) => {
+    if (!user) return;
+    await supabase.from('chronicle_comments').delete().eq('id', id).eq('user_id', user.id);
+    loadChronicles();
+  };
 
   if (authLoading) return <><style>{CSS}</style><Spinner/></>;
 
@@ -4438,6 +5250,13 @@ function App() {
       {tab==='home'    && <HomePage    t={t} user={user} matches={matches} leaderboard={leaderboard}
                             predictions={predictions} awardPreds={awardPreds} awardWinners={awardWinners}
                             tbPtsByUser={tbPtsByUser}
+                            chronicle={latestChronicle}
+                            chronicleReactions={chronicleReactions}
+                            chronicleComments={chronicleComments}
+                            onChronicleReact={chronicleReact}
+                            onChronicleUnreact={chronicleUnreact}
+                            onChronicleComment={chronicleAddComment}
+                            onChronicleDeleteComment={chronicleDeleteComment}
                             onGoAuth={()=>setTab('auth')} onTabChange={setTab}/>}
       {tab==='auth'    && <AuthPage    t={t} lang={lang} setLang={setLang}
                             onVerifying={email=>setVerifyEmail(email)}/>}
@@ -4453,10 +5272,13 @@ function App() {
       {tab==='bracket' && <BracketPage t={t} matches={matches} predictions={predictions} user={user}/>}
       {tab==='me'      && <ProfilePage t={t} user={user} leaderboard={leaderboard}
                             matches={matches} predictions={predictions}
+                            awardPreds={awardPreds} awardWinners={awardWinners}
                             onGoAuth={()=>setTab('auth')} signOut={signOut}/>}
       {tab==='admin'   && <AdminPage   t={t} matches={matches}
                             onMatchUpdated={onRefresh}
-                            awardWinners={awardWinners} onAwardWinnersChange={loadAwards}/>}
+                            awardWinners={awardWinners} onAwardWinnersChange={loadAwards}
+                            user={user} leaderboard={leaderboard}
+                            chronicles={chronicles} onChroniclesChange={loadChronicles}/>}
 
       {/* BOTTOM TAB BAR */}
       <nav className="tab-bar">
