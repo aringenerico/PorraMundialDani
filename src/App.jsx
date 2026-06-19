@@ -3927,12 +3927,32 @@ function AdminPage({ t, matches, onMatchUpdated, awardWinners, onAwardWinnersCha
     return m;
   });
   const [awardSaved, setAwardSaved] = useState({});
+  const [penaltyPick, setPenaltyPick] = useState({}); // { match_id: 'home_team_name' | 'away_team_name' }
+  const [penaltySaved, setPenaltySaved] = useState({});
 
   useEffect(() => {
     const m = {};
     (awardWinners || []).forEach(w => { m[w.category] = w.value || ''; });
     setAdminAwards(m);
   }, [awardWinners]);
+
+  const savePenaltyWinner = async (match) => {
+    const winner = penaltyPick[match.id];
+    if (!winner) return;
+    const { error } = await supabase.rpc('admin_set_penalty_winner', {
+      p_match_id: match.id, p_winner: winner,
+    });
+    if (error) {
+      setPenaltySaved(s => ({ ...s, [match.id]: 'err:'+error.message }));
+      return;
+    }
+    setPenaltySaved(s => ({ ...s, [match.id]: 'ok' }));
+    onMatchUpdated();
+    // Trigger bracket recompute so the winner advances
+    await supabase.rpc('auto_fill_bracket');
+    onMatchUpdated();
+    setTimeout(() => setPenaltySaved(s => ({ ...s, [match.id]: null })), 2500);
+  };
 
   const saveAward = async (category) => {
     const value = adminAwards[category];
@@ -4097,40 +4117,86 @@ function AdminPage({ t, matches, onMatchUpdated, awardWinners, onAwardWinnersCha
 
       <div style={{padding:'0 16px'}}>
         <div className="card">
-          {filtered.map(m=>(
-            <div key={m.id} className="admin-match">
-              <div style={{fontSize:13}}>
-                <div style={{fontWeight:600,display:'flex',alignItems:'center',gap:6}}>
-                  <FlagChip team={m.home_team} size={16}/> {m.home_team||'?'}
+          {filtered.map(m=>{
+            const isFinished = m.status === 'finished' && m.home_goals !== null && m.away_goals !== null;
+            const isKnockout = m.phase !== 'group';
+            const isTied     = isFinished && m.home_goals === m.away_goals;
+            const needsPenaltyWinner = isKnockout && isTied;
+            return (
+            <div key={m.id} style={{borderBottom:'1px solid var(--line)'}}>
+              <div className="admin-match" style={needsPenaltyWinner?{borderBottom:'none'}:undefined}>
+                <div style={{fontSize:13}}>
+                  <div style={{fontWeight:600,display:'flex',alignItems:'center',gap:6}}>
+                    <FlagChip team={m.home_team} size={16}/> {m.home_team||'?'}
+                  </div>
+                  <div style={{fontWeight:600,display:'flex',alignItems:'center',gap:6,marginTop:4}}>
+                    <FlagChip team={m.away_team} size={16}/> {m.away_team||'?'}
+                  </div>
+                  <div className="txt-mut" style={{fontSize:11,marginTop:4}}>
+                    P{m.match_number} · {PHASE_LABELS[m.phase]}
+                  </div>
                 </div>
-                <div style={{fontWeight:600,display:'flex',alignItems:'center',gap:6,marginTop:4}}>
-                  <FlagChip team={m.away_team} size={16}/> {m.away_team||'?'}
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                  <input className="admin-score-inp"
+                    value={results[m.id]?.h ?? (m.home_goals??'')}
+                    onChange={e=>setGoals(m.id,'h',e.target.value)} placeholder="0"/>
+                  <span style={{color:'var(--mut)'}}>–</span>
+                  <input className="admin-score-inp"
+                    value={results[m.id]?.a ?? (m.away_goals??'')}
+                    onChange={e=>setGoals(m.id,'a',e.target.value)} placeholder="0"/>
                 </div>
-                <div className="txt-mut" style={{fontSize:11,marginTop:4}}>
-                  P{m.match_number} · {PHASE_LABELS[m.phase]}
+                <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
+                  <button className="btn-acc btn-sm" onClick={()=>saveResult(m)}>
+                    {saved[m.id]==='ok' ? t.admin_saved : t.admin_save}
+                  </button>
+                  {saved[m.id]?.startsWith?.('err:') && (
+                    <span style={{fontSize:11,color:'var(--err)',maxWidth:180,wordBreak:'break-all'}}>
+                      ❌ {saved[m.id].replace('err:','')}
+                    </span>
+                  )}
                 </div>
               </div>
-              <div style={{display:'flex',alignItems:'center',gap:6}}>
-                <input className="admin-score-inp"
-                  value={results[m.id]?.h ?? (m.home_goals??'')}
-                  onChange={e=>setGoals(m.id,'h',e.target.value)} placeholder="0"/>
-                <span style={{color:'var(--mut)'}}>–</span>
-                <input className="admin-score-inp"
-                  value={results[m.id]?.a ?? (m.away_goals??'')}
-                  onChange={e=>setGoals(m.id,'a',e.target.value)} placeholder="0"/>
-              </div>
-              <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
-                <button className="btn-acc btn-sm" onClick={()=>saveResult(m)}>
-                  {saved[m.id]==='ok' ? t.admin_saved : t.admin_save}
-                </button>
-                {saved[m.id]?.startsWith?.('err:') && (
-                  <span style={{fontSize:11,color:'var(--err)',maxWidth:180,wordBreak:'break-all'}}>
-                    ❌ {saved[m.id].replace('err:','')}
+              {needsPenaltyWinner && (
+                <div style={{
+                  padding:'8px 12px 12px',display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',
+                  background:'rgba(96,170,255,0.05)',
+                }}>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--sky)'}}>
+                    ⚽ Empate · Ganador en penaltis:
                   </span>
-                )}
-              </div>
+                  <select
+                    value={penaltyPick[m.id] ?? (m.penalty_winner ?? '')}
+                    onChange={e=>setPenaltyPick(p=>({...p,[m.id]:e.target.value}))}
+                    style={{
+                      fontSize:12,padding:'4px 8px',borderRadius:6,
+                      background:'var(--surface)',border:'1px solid var(--line)',
+                      color:(penaltyPick[m.id]||m.penalty_winner)?'var(--txt)':'var(--mut)',
+                    }}>
+                    <option value="">— Elige —</option>
+                    {m.home_team && <option value={m.home_team}>{m.home_team}</option>}
+                    {m.away_team && <option value={m.away_team}>{m.away_team}</option>}
+                  </select>
+                  <button className="btn-acc btn-sm"
+                    onClick={()=>savePenaltyWinner(m)}
+                    disabled={!penaltyPick[m.id] && !m.penalty_winner}
+                    style={{fontSize:11}}>
+                    {penaltySaved[m.id]==='ok' ? 'Guardado ✓' : 'Guardar'}
+                  </button>
+                  {m.penalty_winner && (
+                    <span style={{fontSize:11,color:'var(--mut)'}}>
+                      Actual: <strong style={{color:'var(--gold)'}}>{m.penalty_winner}</strong>
+                    </span>
+                  )}
+                  {penaltySaved[m.id]?.startsWith?.('err:') && (
+                    <span style={{fontSize:11,color:'var(--err)'}}>
+                      ❌ {penaltySaved[m.id].replace('err:','')}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
