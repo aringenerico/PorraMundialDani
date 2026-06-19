@@ -1522,7 +1522,7 @@ function VerifyScreen({ t, email }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE: HOME
 // ─────────────────────────────────────────────────────────────────────────────
-function HomePage({ t, user, matches, predictions, leaderboard, onGoAuth, onTabChange, awardPreds, awardWinners }) {
+function HomePage({ t, user, matches, predictions, leaderboard, onGoAuth, onTabChange, awardPreds, awardWinners, tbPtsByUser={} }) {
   // Next deadline
   const nextDeadline = useMemo(() => {
     const upcoming = matches
@@ -1541,12 +1541,18 @@ function HomePage({ t, user, matches, predictions, leaderboard, onGoAuth, onTabC
   // Live matches
   const liveMatches = matches.filter(m => m.status === 'live' || m.status === 'in_progress');
 
-  // My rank
+  // My rank (sorted consistently with LeaderboardPage: total + tb + name)
   const myRow = useMemo(() => {
     if (!user || !leaderboard.length) return null;
-    const idx = leaderboard.findIndex(r => r.user_id === user.id);
-    return idx >= 0 ? { rank: idx+1, ...leaderboard[idx] } : null;
-  }, [user, leaderboard]);
+    const hasW = (awardWinners||[]).some(w=>w.value!=null);
+    const total = r => (r.total_pts||0) + (hasW ? calcAwardBonus(r.user_id, awardPreds||[], awardWinners||[]) : 0);
+    const tb    = r => Number(tbPtsByUser?.[r.user_id]) || 0;
+    const sorted = [...leaderboard].sort((a,b) =>
+      total(b)-total(a) || tb(b)-tb(a) || (a.display_name||'').localeCompare(b.display_name||'')
+    );
+    const idx = sorted.findIndex(r => r.user_id === user.id);
+    return idx >= 0 ? { rank: idx+1, ...sorted[idx] } : null;
+  }, [user, leaderboard, awardPreds, awardWinners, tbPtsByUser]);
 
   // Award bonus for my row
   const myAwardBonus = useMemo(() => {
@@ -2664,7 +2670,7 @@ function Avatar({ src, name, size=36, userId }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // ATOM: LB ROW v2 (PR-A §5)
 // ─────────────────────────────────────────────────────────────────────────────
-function LbRow({ t, row, rank, isMe, id, totalPts, awardBonus }) {
+function LbRow({ t, row, rank, isMe, id, totalPts, awardBonus, tbPts, tied }) {
   const total = (row.pts_exact||0) + (row.pts_result||0) + (row.pts_goals||0);
   const displayPts = totalPts !== undefined ? totalPts : row.total_pts;
   const segs = total > 0 ? [
@@ -2682,6 +2688,14 @@ function LbRow({ t, row, rank, isMe, id, totalPts, awardBonus }) {
             {row.display_name || row.email?.split('@')[0] || 'Anónimo'}
           </span>
           {isMe && <span className="lb-me-pin">{t.lb_me_pin||'TÚ'}</span>}
+          {tied && (
+            <span title={`Desempate: ${tbPts||0} pts desde cuartos`}
+              style={{display:'inline-flex',alignItems:'center',gap:2,fontSize:10,fontWeight:700,
+                color:'var(--sky)',background:'rgba(96,170,255,0.12)',
+                border:'1px solid rgba(96,170,255,0.3)',borderRadius:4,padding:'1px 5px',marginLeft:6}}>
+              ⚖ {tbPts||0}
+            </span>
+          )}
         </div>
         {total > 0 && (
           <div className="lb-row-bars">
@@ -2752,7 +2766,7 @@ function JumpToMeFab({ t, user, leaderboard }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // MODAL: USER DETAIL (clicked from leaderboard) — predictions + breakdown + awards
 // ─────────────────────────────────────────────────────────────────────────────
-function UserDetailModal({ t, row, rank, matches, awardPreds, awardWinners, onClose }) {
+function UserDetailModal({ t, row, rank, matches, awardPreds, awardWinners, onClose, tbPts=0 }) {
   const [preds, setPreds] = useState(null);
   const [loadingP, setLoadingP] = useState(true);
 
@@ -2860,6 +2874,17 @@ function UserDetailModal({ t, row, rank, matches, awardPreds, awardWinners, onCl
                 </div>
               );
             })}
+            <div style={{
+              marginTop:10, paddingTop:8, borderTop:'1px dashed var(--line)',
+              display:'flex', alignItems:'center', gap:8, fontSize:11, color:'var(--mut)',
+            }}>
+              <span style={{display:'inline-flex',alignItems:'center',gap:3,
+                color:'var(--sky)',background:'rgba(96,170,255,0.10)',
+                border:'1px solid rgba(96,170,255,0.25)',borderRadius:4,padding:'1px 6px',fontWeight:700}}>
+                ⚖ {tbPts}
+              </span>
+              <span>Puntos desde cuartos (desempate)</span>
+            </div>
           </div>
         </div>
 
@@ -2971,7 +2996,7 @@ function UserDetailModal({ t, row, rank, matches, awardPreds, awardWinners, onCl
   );
 }
 
-function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, matches, awardPreds, awardWinners }) {
+function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, matches, awardPreds, awardWinners, tbPtsByUser={} }) {
   const [filter,           setFilter]           = useState({ mode:'general' });
   const [filteredData,     setFilteredData]     = useState(null);
   const [filterLoading,    setFilterLoading]    = useState(false);
@@ -2999,13 +3024,28 @@ function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, match
   const hasAwardWinners = (awardWinners||[]).some(w => w.value != null);
   const getTotal = (row) => (row.total_pts || 0) + (hasAwardWinners ? calcAwardBonus(row.user_id, awardPreds||[], awardWinners||[]) : 0);
   const getBonus = (row) => hasAwardWinners ? calcAwardBonus(row.user_id, awardPreds||[], awardWinners||[]) : 0;
+  const getTb    = (row) => Number(tbPtsByUser?.[row.user_id]) || 0;
 
-  const sortedLeaderboard = hasAwardWinners
-    ? [...leaderboard].sort((a,b) => getTotal(b) - getTotal(a))
-    : leaderboard;
+  // Sort by total pts desc → knockout tb pts desc → display_name asc
+  const sortedLeaderboard = [...leaderboard].sort((a,b) =>
+    getTotal(b) - getTotal(a) ||
+    getTb(b)    - getTb(a)    ||
+    (a.display_name || '').localeCompare(b.display_name || '')
+  );
 
-  const top3        = sortedLeaderboard.slice(0,3);
-  const rest        = sortedLeaderboard.slice(3);
+  // Mark each row as "tied" if its total equals the neighbour's total.
+  // Used to show the ⚖ tiebreaker badge only where it matters.
+  const tieFlags = sortedLeaderboard.map((row, i) => {
+    const prev = sortedLeaderboard[i-1];
+    const next = sortedLeaderboard[i+1];
+    return (prev && getTotal(prev) === getTotal(row)) ||
+           (next && getTotal(next) === getTotal(row));
+  });
+
+  const top3      = sortedLeaderboard.slice(0,3);
+  const top3Ties  = tieFlags.slice(0,3);
+  const rest      = sortedLeaderboard.slice(3);
+  const restTies  = tieFlags.slice(3);
   const podiumOrder = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3;
   const podiumColors  = ['#c0c0c0', '#F5B731', '#cd7f32'];
   const podiumHeights = [80, 110, 66];
@@ -3096,6 +3136,14 @@ function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, match
                     <div className="podium-pts" style={{color:clr}}>
                       {getTotal(row)}<span style={{fontSize:9,color:'var(--mut)',marginLeft:2}}>pts</span>
                     </div>
+                    {top3Ties[origRank-1] && (
+                      <div title={`Desempate: ${getTb(row)} pts desde cuartos`}
+                        style={{display:'inline-flex',alignItems:'center',gap:3,fontSize:10,fontWeight:700,
+                          color:'var(--sky)',background:'rgba(96,170,255,0.12)',
+                          border:'1px solid rgba(96,170,255,0.3)',borderRadius:6,padding:'2px 6px'}}>
+                        ⚖ {getTb(row)}
+                      </div>
+                    )}
                     <div className="podium-bar" style={{
                       height:h,
                       background:`linear-gradient(180deg,${clr}aa 0%,${clr}22 100%)`,
@@ -3125,12 +3173,14 @@ function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, match
               const rank = i+4;
               const isMe = user?.id === row.user_id;
               const bonus = getBonus(row);
+              const tied  = restTies[i];
               return (
                 <div key={row.user_id} onClick={() => setDetailRow({ row, rank })}
                      style={{cursor:'pointer'}}>
                   <LbRow t={t} row={row} rank={rank} isMe={isMe}
                     id={isMe ? 'lb-me-row' : undefined}
-                    totalPts={getTotal(row)} awardBonus={bonus}/>
+                    totalPts={getTotal(row)} awardBonus={bonus}
+                    tbPts={getTb(row)} tied={tied}/>
                 </div>
               );
             })}
@@ -3149,6 +3199,7 @@ function LeaderboardPage({ t, user, leaderboard: leaderboardProp, loading, match
       {detailRow && (
         <UserDetailModal t={t} row={detailRow.row} rank={detailRow.rank}
           matches={matches} awardPreds={awardPreds} awardWinners={awardWinners}
+          tbPts={getTb(detailRow.row)}
           onClose={() => setDetailRow(null)}/>
       )}
     </div>
@@ -4145,6 +4196,7 @@ function App() {
   const [detailMatchId, setDetailMatchId] = useState(null);
   const [awardPreds,   setAwardPreds]   = useState([]);
   const [awardWinners, setAwardWinners] = useState([]);
+  const [tbPtsByUser,  setTbPtsByUser]  = useState({});  // { user_id: tb_pts } — knockout tiebreaker
 
   const t = LANGS[lang];
 
@@ -4189,10 +4241,18 @@ function App() {
     setAwardWinners(winners || []);
   }, []);
 
+  const loadTbPts = useCallback(async () => {
+    const { data } = await supabase.from('leaderboard_tb').select('user_id, tb_pts');
+    const map = {};
+    (data || []).forEach(r => { map[r.user_id] = Number(r.tb_pts) || 0; });
+    setTbPtsByUser(map);
+  }, []);
+
   useEffect(()=>{ loadMatches(); },[loadMatches]);
   useEffect(()=>{ loadPredictions(); },[loadPredictions]);
   useEffect(()=>{ loadLeaderboard(); },[loadLeaderboard]);
   useEffect(()=>{ loadAwards(); },[loadAwards]);
+  useEffect(()=>{ loadTbPts(); },[loadTbPts]);
 
   const signOut = async()=>{ await supabase.auth.signOut(); setTab('home'); };
 
@@ -4216,16 +4276,22 @@ function App() {
 
   const myRank = useMemo(()=>{
     if (!user||!leaderboard.length) return null;
-    const idx = leaderboard.findIndex(r=>r.user_id===user.id);
+    const hasW = (awardWinners||[]).some(w=>w.value!=null);
+    const total = r => (r.total_pts||0) + (hasW ? calcAwardBonus(r.user_id, awardPreds||[], awardWinners||[]) : 0);
+    const tb    = r => Number(tbPtsByUser?.[r.user_id]) || 0;
+    const sorted = [...leaderboard].sort((a,b) =>
+      total(b)-total(a) || tb(b)-tb(a) || (a.display_name||'').localeCompare(b.display_name||'')
+    );
+    const idx = sorted.findIndex(r=>r.user_id===user.id);
     return idx>=0 ? idx+1 : null;
-  },[user,leaderboard]);
+  },[user,leaderboard,awardPreds,awardWinners,tbPtsByUser]);
 
   const firstMatchDeadline = matches.length > 0
     ? matches.reduce((min, m) => m.deadline && (!min || m.deadline < min) ? m.deadline : min, null)
     : null;
   const awardsOpen = firstMatchDeadline ? isBeforeDeadline(firstMatchDeadline) : true;
 
-  const onRefresh = ()=>{ loadMatches(); loadPredictions(); loadLeaderboard(); loadAwards(); };
+  const onRefresh = ()=>{ loadMatches(); loadPredictions(); loadLeaderboard(); loadAwards(); loadTbPts(); };
 
   if (authLoading) return <><style>{CSS}</style><Spinner/></>;
 
@@ -4305,6 +4371,7 @@ function App() {
       {/* PAGES */}
       {tab==='home'    && <HomePage    t={t} user={user} matches={matches} leaderboard={leaderboard}
                             predictions={predictions} awardPreds={awardPreds} awardWinners={awardWinners}
+                            tbPtsByUser={tbPtsByUser}
                             onGoAuth={()=>setTab('auth')} onTabChange={setTab}/>}
       {tab==='auth'    && <AuthPage    t={t} lang={lang} setLang={setLang}
                             onVerifying={email=>setVerifyEmail(email)}/>}
@@ -4315,7 +4382,8 @@ function App() {
                             awardPreds={awardPreds} awardWinners={awardWinners}
                             awardsOpen={awardsOpen}/>}
       {tab==='ranking' && <LeaderboardPage t={t} user={user} leaderboard={leaderboard} loading={lbLoading}
-                            matches={matches} awardPreds={awardPreds} awardWinners={awardWinners}/>}
+                            matches={matches} awardPreds={awardPreds} awardWinners={awardWinners}
+                            tbPtsByUser={tbPtsByUser}/>}
       {tab==='bracket' && <BracketPage t={t} matches={matches} predictions={predictions} user={user}/>}
       {tab==='me'      && <ProfilePage t={t} user={user} leaderboard={leaderboard}
                             matches={matches} predictions={predictions}
