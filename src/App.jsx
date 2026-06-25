@@ -4526,6 +4526,138 @@ const FD_STAGE_MAP = {
 };
 const fdNorm = n => FD_TEAM_MAP[n] || n;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN: BEST-3RD SLOT OVERRIDES (R32)
+// ─────────────────────────────────────────────────────────────────────────────
+// The 8 R32 matches that take a "best 3rd-placed team from a set of groups"
+// (M74, M77, M79, M80, M81, M82, M85, M87) can't be auto-resolved without
+// FIFA's full 495-row table. We do greedy assignment in fixture order, and
+// let the admin override per-slot via the admin_set_third_override RPC.
+const THIRD_SLOTS = [
+  { slot:'3_ABCDF', match:74, eligible:['A','B','C','D','F'], host:'1ºE' },
+  { slot:'3_CDFGH', match:77, eligible:['C','D','F','G','H'], host:'1ºI' },
+  { slot:'3_CEFHI', match:79, eligible:['C','E','F','H','I'], host:'1ºA' },
+  { slot:'3_EHIJK', match:80, eligible:['E','H','I','J','K'], host:'1ºL' },
+  { slot:'3_BEFIJ', match:81, eligible:['B','E','F','I','J'], host:'1ºD' },
+  { slot:'3_AEHIJ', match:82, eligible:['A','E','H','I','J'], host:'1ºG' },
+  { slot:'3_EFGIJ', match:85, eligible:['E','F','G','I','J'], host:'1ºB' },
+  { slot:'3_DEIJL', match:87, eligible:['D','E','I','J','L'], host:'1ºK' },
+];
+
+function ThirdOverridesSection({ matches, onMatchUpdated }) {
+  const [overrides, setOverrides] = useState({});
+  const [thirds, setThirds]       = useState([]); // [{ team, group, pts, gd, gf }]
+  const [busy, setBusy]           = useState(false);
+  const [savedSlot, setSavedSlot] = useState('');
+
+  const reload = useCallback(async () => {
+    const { data: ovs } = await supabase.from('r32_third_overrides').select('slot, team');
+    const m = {};
+    (ovs || []).forEach(r => { m[r.slot] = r.team; });
+    setOverrides(m);
+  }, []);
+  useEffect(() => { reload(); }, [reload]);
+
+  // Compute best 3rd-placed team per group (client-side from matches)
+  useEffect(() => {
+    const standings = computeAllStandings(matches);
+    const out = [];
+    Object.entries(standings || {}).forEach(([grp, st]) => {
+      const sorted = Object.entries(st).map(([team, s]) => ({ team, ...s }))
+        .sort((a,b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf);
+      const third = sorted[2];
+      if (third && third.pj === 3) {
+        out.push({ team: third.team, group: grp, pts: third.pts,
+                   gd: third.gf - third.ga, gf: third.gf });
+      }
+    });
+    out.sort((a,b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
+    setThirds(out);
+  }, [matches]);
+
+  const allGroupsDone = thirds.length === 12;
+
+  const setOverride = async (slot, team) => {
+    setBusy(true);
+    const { error } = await supabase.rpc('admin_set_third_override', {
+      p_slot: slot, p_team: team || null,
+    });
+    setBusy(false);
+    if (!error) {
+      setSavedSlot(slot);
+      await reload();
+      onMatchUpdated();
+      setTimeout(() => setSavedSlot(''), 1500);
+    } else {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  return (
+    <div className="card" style={{padding:'12px 16px',marginBottom:12}}>
+      <div style={{fontWeight:700,fontSize:14,marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+        <Icon name="trophy" size={14} color="var(--gold)" stroke={2}/>
+        Mejores 3ros — Asignación R32
+      </div>
+      <div style={{fontSize:11,color:'var(--mut)',marginBottom:10}}>
+        Greedy auto en orden de fixture. Si la asignación oficial FIFA difiere, elige el equipo manualmente.
+        Al cambiar, se borra el away_team del partido y se recalcula el bracket.
+      </div>
+      {!allGroupsDone && (
+        <div style={{fontSize:11,color:'var(--coral)',fontStyle:'italic',padding:'4px 0 8px'}}>
+          Esperando a que se completen los 12 grupos ({thirds.length}/12 cerrados).
+        </div>
+      )}
+      {THIRD_SLOTS.map(({ slot, match, eligible, host }) => {
+        const eligThirds = thirds.filter(t => eligible.includes(t.group));
+        const current = overrides[slot] ||
+          // Show current away_team in DB for context (may be greedy or override)
+          (matches.find(m => m.match_number === match)?.away_team) || '';
+        return (
+          <div key={slot} style={{
+            display:'flex',alignItems:'center',gap:8,padding:'7px 0',
+            borderBottom:'1px solid var(--line)',flexWrap:'wrap',fontSize:12,
+          }}>
+            <div style={{minWidth:56,fontFamily:'JetBrains Mono,monospace',color:'var(--mut)'}}>
+              P{match}
+            </div>
+            <div style={{minWidth:130,color:'var(--txt)',fontWeight:600}}>
+              {host} vs 3º de {eligible.join('/')}
+            </div>
+            <select
+              value={overrides[slot] || ''}
+              onChange={e => setOverride(slot, e.target.value)}
+              disabled={!allGroupsDone || busy}
+              style={{
+                flex:1,minWidth:160,fontSize:12,padding:'4px 8px',borderRadius:6,
+                background:'var(--surface)',border:'1px solid var(--line)',
+                color: overrides[slot] ? 'var(--txt)' : 'var(--mut)',
+              }}>
+              <option value="">— Auto (greedy) —</option>
+              {eligThirds.map(t => (
+                <option key={t.team} value={t.team}>
+                  {t.team} (Gr.{t.group} · {t.pts}p · {t.gd>=0?'+':''}{t.gd}gd · {t.gf}gf)
+                </option>
+              ))}
+            </select>
+            {current && !overrides[slot] && (
+              <span style={{fontSize:10,color:'var(--mut)',fontStyle:'italic'}}>
+                Actual: {current}
+              </span>
+            )}
+            {overrides[slot] && (
+              <span style={{fontSize:10,color:'var(--gold)',fontWeight:700}}>manual</span>
+            )}
+            {savedSlot === slot && (
+              <span style={{fontSize:10,color:'var(--green)'}}>✓</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function AdminPage({ t, matches, onMatchUpdated, awardWinners, onAwardWinnersChange,
                        user, leaderboard=[], chronicles=[], onChroniclesChange }) {
   const [results, setResults]       = useState({});
@@ -4716,6 +4848,9 @@ function AdminPage({ t, matches, onMatchUpdated, awardWinners, onAwardWinnersCha
           {fillStatus==='ok'  && <span className="badge-ok">{t.bracket_updated}</span>}
           {fillStatus==='err' && <span className="badge-err">Error al actualizar</span>}
         </div>
+
+        {/* Mejores 3ros override */}
+        <ThirdOverridesSection matches={matches} onMatchUpdated={onMatchUpdated}/>
       </div>
 
       <div className="phase-filter">
